@@ -1,0 +1,410 @@
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
+import User from '../models/User.js';
+import TeacherProfile from '../models/TeacherProfile.js';
+import StudentProfile from '../models/StudentProfile.js';
+import ActiveSession from '../models/ActiveSession.js';
+import ConnectionRequest from '../models/ConnectionRequest.js';
+import ProfileViewLog from '../models/ProfileViewLog.js';
+import SavedProfile from '../models/SavedProfile.js';
+import { authenticate } from '../middleware/auth.js';
+import { serializeProfile } from '../utils/serializeProfile.js';
+import { 
+  createSessionAndTokens, 
+  clearAuthCookies, 
+  verifyAndReissueAccessToken 
+} from '../utils/tokenService.js';
+
+const router = express.Router();
+
+// POST /api/auth/signup
+router.post('/signup', async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phone,
+      password,
+      role,
+      dateOfBirth,
+      parentGuardianConsent,
+      consentGiven
+    } = req.body;
+    
+    if (!['student', 'teacher'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be student or teacher.' });
+    }
+
+    if (consentGiven === false) {
+      return res.status(400).json({ message: 'You must accept the terms and consent to data processing under DPDP Act 2023.' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      phone: phone || '',
+      passwordHash: password,
+      role,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      parentGuardianConsent: Boolean(parentGuardianConsent),
+      consentGiven: true,
+      consentTimestamp: new Date()
+    });
+
+    let profile;
+    if (role === 'teacher') {
+      profile = await TeacherProfile.create({ 
+        userId: user._id,
+        approvalStatus: 'pending',
+        verificationStatus: 'pending',
+        isVerified: false
+      });
+    } else {
+      profile = await StudentProfile.create({ userId: user._id });
+    }
+
+    const { accessToken } = await createSessionAndTokens(user, req, res);
+
+    const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
+    res.status(201).json({ user: userWithoutPassword, profile, token: accessToken });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Account is deactivated or deleted. Please contact support.' });
+    }
+
+    const { accessToken } = await createSessionAndTokens(user, req, res);
+
+    const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
+    let profile = null;
+    if (user.role === 'teacher') profile = await TeacherProfile.findOne({ userId: user._id });
+    else if (user.role === 'student') profile = await StudentProfile.findOne({ userId: user._id });
+
+    res.json({ user: userWithoutPassword, profile, token: accessToken });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/google
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, role, consentGiven } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential token is required' });
+    }
+
+    let payload = null;
+    try {
+      if (process.env.GOOGLE_CLIENT_ID) {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        payload = ticket.getPayload();
+      } else {
+        payload = jwt.decode(credential);
+      }
+    } catch (verifyErr) {
+      payload = jwt.decode(credential);
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Failed to verify Google credential token' });
+    }
+
+    const { email, name, picture, sub: googleId } = payload;
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    // Existing user: sign in
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.isGoogleAuth = true;
+        if (!user.avatar && picture) user.avatar = picture;
+        await user.save();
+      }
+
+      const { accessToken } = await createSessionAndTokens(user, req, res);
+
+      let profile = null;
+      if (user.role === 'teacher') profile = await TeacherProfile.findOne({ userId: user._id });
+      else if (user.role === 'student') profile = await StudentProfile.findOne({ userId: user._id });
+
+      const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
+      return res.json({ user: userWithoutPassword, profile, token: accessToken });
+    }
+
+    // New user without role
+    if (!role || !['student', 'teacher'].includes(role)) {
+      return res.status(200).json({
+        isNewUser: true,
+        email: email.toLowerCase(),
+        name: name || 'Google User',
+        picture: picture || null,
+        googleId,
+        message: 'Role selection required'
+      });
+    }
+
+    // Create new Google user
+    user = await User.create({
+      name: name || 'Google User',
+      email: email.toLowerCase(),
+      role,
+      googleId,
+      isGoogleAuth: true,
+      avatar: picture || '',
+      phone: '',
+      consentGiven: true,
+      consentTimestamp: new Date()
+    });
+
+    let profile;
+    if (role === 'teacher') {
+      profile = await TeacherProfile.create({ 
+        userId: user._id, 
+        profilePhotoUrl: picture || '',
+        approvalStatus: 'pending',
+        verificationStatus: 'pending',
+        isVerified: false
+      });
+    } else {
+      profile = await StudentProfile.create({ userId: user._id, profilePhotoUrl: picture || '' });
+    }
+
+    const { accessToken } = await createSessionAndTokens(user, req, res);
+    const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
+    return res.status(201).json({ user: userWithoutPassword, profile, token: accessToken });
+  } catch (error) {
+    console.error('Google Auth Route Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/refresh - Reissue 15-minute access token using valid 30-day refresh token
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
+    if (!refreshToken) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: 'Refresh token missing. Please login again.' });
+    }
+
+    const reissued = await verifyAndReissueAccessToken(refreshToken, res);
+    if (!reissued) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: 'Invalid or expired session. Please login again.' });
+    }
+
+    return res.json({
+      message: 'Token reissued successfully',
+      token: reissued.accessToken,
+      user: reissued.user
+    });
+  } catch (err) {
+    clearAuthCookies(res);
+    return res.status(401).json({ message: 'Failed to refresh token' });
+  }
+});
+
+// POST /api/auth/logout - Clear cookies and delete session record in DB
+router.post('/logout', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    const accessToken = req.cookies?.accessToken || req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+    if (refreshToken) {
+      await ActiveSession.deleteMany({ refreshToken });
+    }
+    if (accessToken) {
+      await ActiveSession.deleteMany({ token: accessToken });
+    }
+
+    clearAuthCookies(res);
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    clearAuthCookies(res);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/auth/me
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    let profile = null;
+    if (req.user.role === 'teacher') {
+      profile = await TeacherProfile.findOne({ userId: req.user._id });
+    } else if (req.user.role === 'student') {
+      profile = await StudentProfile.findOne({ userId: req.user._id });
+    }
+    res.json({
+      user: req.user,
+      profile: profile ? serializeProfile(profile, req.user) : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/auth/profile - Update personal user info
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { name, phone, dateOfBirth, parentGuardianConsent } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (dateOfBirth) user.dateOfBirth = new Date(dateOfBirth);
+    if (parentGuardianConsent !== undefined) user.parentGuardianConsent = Boolean(parentGuardianConsent);
+
+    await user.save();
+    const updated = await User.findById(user._id).select('-passwordHash');
+    res.json({ message: 'Personal info updated', user: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/auth/account - Delete / Deactivate own account (DPDP compliance)
+router.delete('/account', authenticate, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Soft delete & flag
+    await User.findByIdAndUpdate(userId, {
+      isActive: false,
+      accountDeletionRequested: new Date()
+    });
+
+    // Clean up active sessions
+    await ActiveSession.deleteMany({ userId });
+
+    // Cancel pending connection requests
+    await ConnectionRequest.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }],
+      status: 'pending'
+    });
+
+    res.clearCookie('token');
+    res.json({ message: 'Account has been deactivated and scheduled for permanent deletion under privacy terms.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/auth/dashboard-metrics - Role-aware dashboard metrics
+router.get('/dashboard-metrics', authenticate, async (req, res) => {
+  try {
+    const user = req.user;
+    let metrics = {};
+
+    if (user.role === 'teacher') {
+      const profile = await TeacherProfile.findOne({ userId: user._id });
+      
+      // Calculate completeness %
+      let score = 20; // registered
+      if (profile) {
+        if (profile.bio && profile.bio.length > 20) score += 15;
+        if (profile.subjects && profile.subjects.length > 0) score += 15;
+        if (profile.exams && profile.exams.length > 0) score += 10;
+        if (profile.experience > 0) score += 10;
+        if (profile.profilePhotoUrl) score += 10;
+        if (profile.demoVideoUrl) score += 10;
+        if (profile.qualifications && profile.qualifications.length > 0) score += 10;
+      }
+      const completeness = Math.min(100, score);
+
+      const [incomingCount, sentCount, acceptedCount, profileViewsCount] = await Promise.all([
+        ConnectionRequest.countDocuments({ toUserId: user._id, status: 'pending' }),
+        ConnectionRequest.countDocuments({ fromUserId: user._id, status: 'pending' }),
+        ConnectionRequest.countDocuments({
+          $or: [{ fromUserId: user._id }, { toUserId: user._id }],
+          status: 'accepted'
+        }),
+        ProfileViewLog.countDocuments({ targetId: user._id })
+      ]);
+
+      metrics = {
+        role: 'teacher',
+        completeness,
+        incomingCount,
+        sentCount,
+        acceptedCount,
+        profileViewsCount,
+        isVerified: profile?.isVerified ?? false,
+        verificationStatus: profile?.verificationStatus || (profile?.isVerified ? 'verified' : 'pending'),
+        rejectionReason: profile?.rejectionReason || '',
+        approvalStatus: profile?.approvalStatus || 'pending'
+      };
+    } else if (user.role === 'student') {
+      const profile = await StudentProfile.findOne({ userId: user._id });
+
+      let score = 20;
+      if (profile) {
+        if (profile.classOrExam) score += 20;
+        if (profile.subjectsNeeded && profile.subjectsNeeded.length > 0) score += 20;
+        if (profile.location?.city) score += 15;
+        if (profile.budget?.max > 0) score += 15;
+        if (profile.goals) score += 10;
+      }
+      const completeness = Math.min(100, score);
+
+      const [savedCount, sentCount, incomingCount, acceptedCount] = await Promise.all([
+        SavedProfile.countDocuments({ userId: user._id }),
+        ConnectionRequest.countDocuments({ fromUserId: user._id, status: 'pending' }),
+        ConnectionRequest.countDocuments({ toUserId: user._id, status: 'pending' }),
+        ConnectionRequest.countDocuments({
+          $or: [{ fromUserId: user._id }, { toUserId: user._id }],
+          status: 'accepted'
+        })
+      ]);
+
+      metrics = {
+        role: 'student',
+        completeness,
+        savedCount,
+        sentCount,
+        incomingCount,
+        acceptedCount,
+        approvalStatus: profile?.approvalStatus || 'approved'
+      };
+    } else {
+      // Admin
+      metrics = { role: 'admin' };
+    }
+
+    res.json(metrics);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+export default router;

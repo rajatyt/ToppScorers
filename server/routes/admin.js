@@ -1,0 +1,587 @@
+import express from 'express';
+import User from '../models/User.js';
+import TeacherProfile from '../models/TeacherProfile.js';
+import StudentProfile from '../models/StudentProfile.js';
+import ActiveSession from '../models/ActiveSession.js';
+import Report from '../models/Report.js';
+import Block from '../models/Block.js';
+import ProfileViewLog from '../models/ProfileViewLog.js';
+import ConnectionRequest from '../models/ConnectionRequest.js';
+import SavedProfile from '../models/SavedProfile.js';
+import SystemSetting from '../models/SystemSetting.js';
+import { authenticate, authorize } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// All routes require admin role
+router.use(authenticate, authorize('admin'));
+
+// GET /api/admin/users
+router.get('/users', async (req, res) => {
+  try {
+    const { role, search } = req.query;
+    let query = {};
+    if (role) query.role = role;
+    if (search) {
+      query.$or = [
+        { name: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') }
+      ];
+    }
+    const users = await User.find(query).select('-passwordHash').sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/users/:id
+router.get('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let profile = null;
+    if (user.role === 'teacher') profile = await TeacherProfile.findOne({ userId: user._id });
+    else if (user.role === 'student') profile = await StudentProfile.findOne({ userId: user._id });
+
+    res.json({ user, profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/users-purge - Permanently remove all non-admin previous user accounts
+router.delete('/users-purge', async (req, res) => {
+  try {
+    const nonAdminUsers = await User.find({ role: { $ne: 'admin' } });
+    const userIds = nonAdminUsers.map(u => u._id);
+
+    await TeacherProfile.deleteMany({ userId: { $in: userIds } });
+    await StudentProfile.deleteMany({ userId: { $in: userIds } });
+    await ActiveSession.deleteMany({ userId: { $in: userIds } });
+    await ConnectionRequest.deleteMany({
+      $or: [{ fromUserId: { $in: userIds } }, { toUserId: { $in: userIds } }]
+    });
+    await SavedProfile.deleteMany({
+      $or: [{ userId: { $in: userIds } }, { targetUserId: { $in: userIds } }]
+    });
+    await Report.deleteMany({
+      $or: [{ reporterId: { $in: userIds } }, { targetId: { $in: userIds } }]
+    });
+    await Block.deleteMany({
+      $or: [{ blockerId: { $in: userIds } }, { blockedId: { $in: userIds } }]
+    });
+    await ProfileViewLog.deleteMany({
+      $or: [{ viewerId: { $in: userIds } }, { targetId: { $in: userIds } }]
+    });
+    const deleteResult = await User.deleteMany({ role: { $ne: 'admin' } });
+
+    res.json({
+      message: `Successfully removed ${deleteResult.deletedCount} previous user accounts. Only administrator accounts remain.`,
+      deletedCount: deleteResult.deletedCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/users/:id
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.role === 'teacher') await TeacherProfile.deleteOne({ userId: user._id });
+    if (user.role === 'student') await StudentProfile.deleteOne({ userId: user._id });
+    await ActiveSession.deleteMany({ userId: user._id });
+    await user.deleteOne();
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/users/:id/role - Change or promote user role
+router.patch('/users/:id/role', async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['student', 'teacher', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role specified' });
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: `Role updated to ${role}`, user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/sessions
+router.get('/sessions', async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.userId) {
+      filter.userId = req.query.userId;
+    }
+    const sessions = await ActiveSession.find(filter)
+      .populate('userId', 'name email role')
+      .sort({ lastActive: -1 })
+      .limit(100);
+    res.json(sessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/sessions/:id - Revoke single session
+router.delete('/sessions/:id', async (req, res) => {
+  try {
+    const session = await ActiveSession.findByIdAndDelete(req.params.id);
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+    res.json({ message: 'Session revoked successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/users/:userId/sessions - Revoke all sessions for a specific user
+router.delete('/users/:userId/sessions', async (req, res) => {
+  try {
+    const result = await ActiveSession.deleteMany({ userId: req.params.userId });
+    res.json({ 
+      message: `Revoked ${result.deletedCount} session(s) for user`, 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/teachers
+router.get('/teachers', async (req, res) => {
+  try {
+    const teachers = await TeacherProfile.find()
+      .populate('userId', 'name email phone createdAt isActive role dateOfBirth isMinor')
+      .sort({ createdAt: -1 });
+    res.json(teachers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/students
+router.get('/students', async (req, res) => {
+  try {
+    const students = await StudentProfile.find()
+      .populate('userId', 'name email phone createdAt isActive role dateOfBirth isMinor parentGuardianConsent')
+      .sort({ createdAt: -1 });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/teachers/:id/status - Approve/Reject/Suspend/Pending
+router.patch('/teachers/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body; // 'approved' | 'rejected' | 'suspended' | 'pending'
+    const profile = await TeacherProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    profile.approvalStatus = status;
+    if (status === 'approved') {
+      profile.isVerified = true;
+      profile.verificationStatus = 'verified';
+      profile.verifiedAt = new Date();
+    } else if (status === 'pending') {
+      profile.isVerified = false;
+      profile.verificationStatus = 'pending';
+    } else if (status === 'rejected') {
+      profile.isVerified = false;
+      profile.verificationStatus = 'rejected';
+    }
+    await profile.save();
+
+    res.json({ message: `Teacher profile status set to ${status}`, profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/students/:id/status - Approve/Reject/Suspend
+router.patch('/students/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const profile = await StudentProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    profile.approvalStatus = status;
+    await profile.save();
+
+    res.json({ message: `Student profile status set to ${status}`, profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/admin/teachers/:id
+router.put('/teachers/:id', async (req, res) => {
+  try {
+    const { name, email, phone, ...profileData } = req.body;
+    const profile = await TeacherProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    if (profile.userId && (name || email || phone)) {
+      await User.findByIdAndUpdate(profile.userId, {
+        ...(name && { name }),
+        ...(email && { email: email.toLowerCase() }),
+        ...(phone && { phone })
+      });
+    }
+
+    Object.assign(profile, profileData);
+    await profile.save();
+    const updated = await TeacherProfile.findById(profile._id).populate('userId', 'name email phone createdAt isActive role');
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/admin/students/:id
+router.put('/students/:id', async (req, res) => {
+  try {
+    const { name, email, phone, ...profileData } = req.body;
+    const profile = await StudentProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    if (profile.userId && (name || email || phone)) {
+      await User.findByIdAndUpdate(profile.userId, {
+        ...(name && { name }),
+        ...(email && { email: email.toLowerCase() }),
+        ...(phone && { phone })
+      });
+    }
+
+    Object.assign(profile, profileData);
+    await profile.save();
+    const updated = await StudentProfile.findById(profile._id).populate('userId', 'name email phone createdAt isActive role');
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/admin/teachers (Create new user + profile manually)
+router.post('/teachers', async (req, res) => {
+  try {
+    const { name, email, phone, password, ...profileData } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
+
+    const user = await User.create({ name, email, phone, passwordHash: password || 'tempPass123!', role: 'teacher' });
+    const profile = await TeacherProfile.create({ userId: user._id, approvalStatus: 'approved', ...profileData });
+    res.status(201).json({ user, profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/admin/students (Create new user + profile manually)
+router.post('/students', async (req, res) => {
+  try {
+    const { name, email, phone, password, ...profileData } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
+
+    const user = await User.create({ name, email, phone, passwordHash: password || 'tempPass123!', role: 'student' });
+    const profile = await StudentProfile.create({ userId: user._id, approvalStatus: 'approved', ...profileData });
+    res.status(201).json({ user, profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/teachers/:id
+router.delete('/teachers/:id', async (req, res) => {
+  try {
+    const profile = await TeacherProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    
+    await User.findByIdAndDelete(profile.userId);
+    await profile.deleteOne();
+    res.json({ message: 'Teacher deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/students/:id
+router.delete('/students/:id', async (req, res) => {
+  try {
+    const profile = await StudentProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    
+    await User.findByIdAndDelete(profile.userId);
+    await profile.deleteOne();
+    res.json({ message: 'Student deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/reports - View submitted reports
+router.get('/reports', async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .populate('reporterId', 'name email role')
+      .populate('targetId', 'name email role')
+      .sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/reports/:id - Review/dismiss report
+router.patch('/reports/:id', async (req, res) => {
+  try {
+    const { status } = req.body; // 'reviewed' | 'dismissed'
+    const report = await Report.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!report) return res.status(404).json({ message: 'Report not found' });
+    res.json({ message: `Report marked as ${status}`, report });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/blocks - View all block actions
+router.get('/blocks', async (req, res) => {
+  try {
+    const blocks = await Block.find()
+      .populate('blockerId', 'name email role')
+      .populate('blockedId', 'name email role')
+      .sort({ createdAt: -1 });
+    res.json(blocks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/profile-views - Address & Phone view audit logs
+router.get('/profile-views', async (req, res) => {
+  try {
+    const logs = await ProfileViewLog.find()
+      .populate('viewerId', 'name email role')
+      .populate('targetId', 'name email role')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/settings - Read system settings (guest directory visibility, etc.)
+router.get('/settings', async (req, res) => {
+  try {
+    let guestSetting = await SystemSetting.findOne({ key: 'guestDirectoryVisible' });
+    if (!guestSetting) {
+      guestSetting = await SystemSetting.create({
+        key: 'guestDirectoryVisible',
+        value: true,
+        description: 'Allow guests (non-logged-in users) to view preview directory'
+      });
+    }
+    res.json({ guestDirectoryVisible: guestSetting.value });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PUT /api/admin/settings - Update system settings
+router.put('/settings', async (req, res) => {
+  try {
+    const { guestDirectoryVisible } = req.body;
+    if (guestDirectoryVisible !== undefined) {
+      await SystemSetting.findOneAndUpdate(
+        { key: 'guestDirectoryVisible' },
+        { value: Boolean(guestDirectoryVisible) },
+        { upsert: true }
+      );
+    }
+    res.json({ message: 'Settings updated successfully', settings: { guestDirectoryVisible } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==========================================
+// TEACHER VERIFICATION QUEUE ENDPOINTS
+// ==========================================
+
+// GET /api/admin/verifications - Get list of teachers in verification queue
+router.get('/verifications', async (req, res) => {
+  try {
+    const { status = 'pending', search } = req.query;
+    let query = {};
+
+    if (status && status !== 'all') {
+      if (status === 'pending') {
+        query = {
+          $or: [
+            { verificationStatus: 'pending' },
+            { approvalStatus: 'pending', isVerified: false },
+            { verificationStatus: 'unverified', isVerified: false }
+          ]
+        };
+      } else if (status === 'verified') {
+        query = {
+          $or: [
+            { verificationStatus: 'verified' },
+            { isVerified: true }
+          ]
+        };
+      } else if (status === 'rejected') {
+        query = {
+          $or: [
+            { verificationStatus: 'rejected' },
+            { approvalStatus: 'rejected' }
+          ]
+        };
+      } else {
+        query.verificationStatus = status;
+      }
+    }
+
+    const sortOrder = status === 'pending' 
+      ? { createdAt: -1, verificationSubmittedAt: -1 }
+      : { updatedAt: -1 };
+
+    let teachers = await TeacherProfile.find(query)
+      .populate('userId', 'name email phone avatar createdAt isActive')
+      .sort(sortOrder);
+
+    if (search && search.trim()) {
+      const reg = new RegExp(search.trim(), 'i');
+      teachers = teachers.filter(t => 
+        (t.userId && (reg.test(t.userId.name) || reg.test(t.userId.email) || reg.test(t.userId.phone))) ||
+        (t.verificationPhone && reg.test(t.verificationPhone)) ||
+        (t.subjects && t.subjects.some(s => reg.test(s))) ||
+        (t.degreeDetails && (reg.test(t.degreeDetails.highestDegree) || reg.test(t.degreeDetails.university)))
+      );
+    }
+
+    // Return counts along with list
+    const pendingCount = await TeacherProfile.countDocuments({
+      $or: [
+        { verificationStatus: 'pending' },
+        { approvalStatus: 'pending', isVerified: false },
+        { verificationStatus: 'unverified', isVerified: false }
+      ]
+    });
+    const verifiedCount = await TeacherProfile.countDocuments({
+      $or: [
+        { verificationStatus: 'verified' },
+        { isVerified: true }
+      ]
+    });
+    const rejectedCount = await TeacherProfile.countDocuments({
+      $or: [
+        { verificationStatus: 'rejected' },
+        { approvalStatus: 'rejected' }
+      ]
+    });
+    const unverifiedCount = await TeacherProfile.countDocuments({
+      verificationStatus: 'unverified',
+      approvalStatus: { $ne: 'pending' },
+      isVerified: false
+    });
+
+    res.json({
+      counts: {
+        pending: pendingCount,
+        verified: verifiedCount,
+        rejected: rejectedCount,
+        unverified: unverifiedCount,
+        total: pendingCount + verifiedCount + rejectedCount + unverifiedCount
+      },
+      teachers
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/verifications/:id/approve - Approve teacher verification and grant Verified badge
+router.patch('/verifications/:id/approve', async (req, res) => {
+  try {
+    const profile = await TeacherProfile.findById(req.params.id).populate('userId', 'name email phone');
+    if (!profile) return res.status(404).json({ message: 'Teacher profile not found' });
+
+    profile.isVerified = true;
+    profile.verificationStatus = 'verified';
+    profile.approvalStatus = 'approved';
+    profile.verifiedAt = new Date();
+    profile.rejectionReason = '';
+    if (req.body.notes !== undefined) {
+      profile.adminVerificationNotes = req.body.notes;
+    }
+
+    await profile.save();
+    res.json({
+      message: `Teacher ${profile.userId?.name || ''} approved and granted Verified badge!`,
+      profile
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/verifications/:id/reject - Reject teacher verification with reason
+router.patch('/verifications/:id/reject', async (req, res) => {
+  try {
+    const { reason, notes } = req.body;
+    const profile = await TeacherProfile.findById(req.params.id).populate('userId', 'name email phone');
+    if (!profile) return res.status(404).json({ message: 'Teacher profile not found' });
+
+    profile.isVerified = false;
+    profile.verificationStatus = 'rejected';
+    profile.approvalStatus = 'rejected';
+    profile.rejectionReason = reason || 'Your submitted verification documents could not be verified. Please review credentials and resubmit.';
+    if (notes !== undefined) {
+      profile.adminVerificationNotes = notes;
+    }
+
+    await profile.save();
+    res.json({
+      message: `Teacher verification marked as rejected. Reason: ${profile.rejectionReason}`,
+      profile
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/verifications/:id/notes - Update admin call/verification notes
+router.patch('/verifications/:id/notes', async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const profile = await TeacherProfile.findByIdAndUpdate(
+      req.params.id,
+      { adminVerificationNotes: notes || '' },
+      { new: true }
+    ).populate('userId', 'name email phone');
+
+    if (!profile) return res.status(404).json({ message: 'Teacher profile not found' });
+    res.json({ message: 'Verification notes updated', profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+export default router;
