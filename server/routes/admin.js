@@ -10,6 +10,7 @@ import ConnectionRequest from '../models/ConnectionRequest.js';
 import SavedProfile from '../models/SavedProfile.js';
 import SystemSetting from '../models/SystemSetting.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
 
 const router = express.Router();
 
@@ -235,11 +236,35 @@ router.put('/teachers/:id', async (req, res) => {
     const profile = await TeacherProfile.findById(req.params.id);
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    if (profile.userId && (name || email || phone)) {
+    let updateEmail = undefined;
+    let updatePhone = undefined;
+
+    if (email && email.trim()) {
+      const emailValidation = await validateUniqueEmail(email, profile.userId);
+      if (!emailValidation.isValid) {
+        return res.status(400).json({ message: emailValidation.message });
+      }
+      updateEmail = emailValidation.email;
+    }
+
+    if (phone !== undefined) {
+      if (phone && phone.trim()) {
+        const phoneValidation = await validateUniquePhone(phone, profile.userId, false);
+        if (!phoneValidation.isValid) {
+          return res.status(400).json({ message: phoneValidation.message });
+        }
+        updatePhone = phoneValidation.phone;
+        profile.verificationPhone = phoneValidation.phone;
+      } else {
+        updatePhone = '';
+      }
+    }
+
+    if (profile.userId && (name || updateEmail || updatePhone !== undefined)) {
       await User.findByIdAndUpdate(profile.userId, {
         ...(name && { name }),
-        ...(email && { email: email.toLowerCase() }),
-        ...(phone && { phone })
+        ...(updateEmail && { email: updateEmail }),
+        ...(updatePhone !== undefined && { phone: updatePhone })
       });
     }
 
@@ -259,11 +284,34 @@ router.put('/students/:id', async (req, res) => {
     const profile = await StudentProfile.findById(req.params.id);
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    if (profile.userId && (name || email || phone)) {
+    let updateEmail = undefined;
+    let updatePhone = undefined;
+
+    if (email && email.trim()) {
+      const emailValidation = await validateUniqueEmail(email, profile.userId);
+      if (!emailValidation.isValid) {
+        return res.status(400).json({ message: emailValidation.message });
+      }
+      updateEmail = emailValidation.email;
+    }
+
+    if (phone !== undefined) {
+      if (phone && phone.trim()) {
+        const phoneValidation = await validateUniquePhone(phone, profile.userId, false);
+        if (!phoneValidation.isValid) {
+          return res.status(400).json({ message: phoneValidation.message });
+        }
+        updatePhone = phoneValidation.phone;
+      } else {
+        updatePhone = '';
+      }
+    }
+
+    if (profile.userId && (name || updateEmail || updatePhone !== undefined)) {
       await User.findByIdAndUpdate(profile.userId, {
         ...(name && { name }),
-        ...(email && { email: email.toLowerCase() }),
-        ...(phone && { phone })
+        ...(updateEmail && { email: updateEmail }),
+        ...(updatePhone !== undefined && { phone: updatePhone })
       });
     }
 
@@ -280,11 +328,33 @@ router.put('/students/:id', async (req, res) => {
 router.post('/teachers', async (req, res) => {
   try {
     const { name, email, phone, password, ...profileData } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already exists' });
+    const emailValidation = await validateUniqueEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
 
-    const user = await User.create({ name, email, phone, passwordHash: password || 'tempPass123!', role: 'teacher' });
-    const profile = await TeacherProfile.create({ userId: user._id, approvalStatus: 'approved', ...profileData });
+    let validatedPhone = '';
+    if (phone && phone.trim()) {
+      const phoneValidation = await validateUniquePhone(phone, null, false);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ message: phoneValidation.message });
+      }
+      validatedPhone = phoneValidation.phone;
+    }
+
+    const user = await User.create({
+      name,
+      email: emailValidation.email,
+      phone: validatedPhone,
+      passwordHash: password || 'tempPass123!',
+      role: 'teacher'
+    });
+    const profile = await TeacherProfile.create({
+      userId: user._id,
+      approvalStatus: 'approved',
+      verificationPhone: validatedPhone,
+      ...profileData
+    });
     res.status(201).json({ user, profile });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -295,11 +365,32 @@ router.post('/teachers', async (req, res) => {
 router.post('/students', async (req, res) => {
   try {
     const { name, email, phone, password, ...profileData } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already exists' });
+    const emailValidation = await validateUniqueEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
 
-    const user = await User.create({ name, email, phone, passwordHash: password || 'tempPass123!', role: 'student' });
-    const profile = await StudentProfile.create({ userId: user._id, approvalStatus: 'approved', ...profileData });
+    let validatedPhone = '';
+    if (phone && phone.trim()) {
+      const phoneValidation = await validateUniquePhone(phone, null, false);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ message: phoneValidation.message });
+      }
+      validatedPhone = phoneValidation.phone;
+    }
+
+    const user = await User.create({
+      name,
+      email: emailValidation.email,
+      phone: validatedPhone,
+      passwordHash: password || 'tempPass123!',
+      role: 'student'
+    });
+    const profile = await StudentProfile.create({
+      userId: user._id,
+      approvalStatus: 'approved',
+      ...profileData
+    });
     res.status(201).json({ user, profile });
   } catch (error) {
     res.status(500).json({ message: error.message });

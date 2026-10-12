@@ -12,6 +12,7 @@ import SystemSetting from '../models/SystemSetting.js';
 import { authenticate, optionalAuth, authorize } from '../middleware/auth.js';
 import { directoryLimiter, profileViewLimiter } from '../middleware/rateLimiter.js';
 import { serializeProfile } from '../utils/serializeProfile.js';
+import { validateUniquePhone } from '../utils/identityValidator.js';
 
 const router = express.Router();
 
@@ -341,8 +342,12 @@ router.post(
 
       // Verification & Coordination Phone
       if (verificationPhone !== undefined && verificationPhone.trim()) {
-        profile.verificationPhone = verificationPhone.trim();
-        await User.findByIdAndUpdate(profile.userId, { phone: verificationPhone.trim() });
+        const phoneValidation = await validateUniquePhone(verificationPhone, req.user._id, true);
+        if (!phoneValidation.isValid) {
+          return res.status(400).json({ message: phoneValidation.message });
+        }
+        profile.verificationPhone = phoneValidation.phone;
+        await User.findByIdAndUpdate(profile.userId, { phone: phoneValidation.phone });
       }
       if (preferredCallingTime !== undefined) {
         profile.preferredCallingTime = preferredCallingTime;
@@ -502,11 +507,18 @@ router.put('/profile', authenticate, authorize('teacher'), async (req, res) => {
     delete updateData.approvalStatus;
     delete updateData.verificationStatus;
 
-    if (name || phone) {
+    if (phone !== undefined && phone.trim()) {
+      const phoneValidation = await validateUniquePhone(phone, req.user._id, false);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ message: phoneValidation.message });
+      }
       await User.findByIdAndUpdate(req.user._id, {
         ...(name && { name }),
-        ...(phone && { phone })
+        phone: phoneValidation.phone
       });
+      updateData.verificationPhone = phoneValidation.phone;
+    } else if (name) {
+      await User.findByIdAndUpdate(req.user._id, { name });
     }
 
     const profile = await TeacherProfile.findOneAndUpdate(

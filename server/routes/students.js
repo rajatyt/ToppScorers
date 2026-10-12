@@ -12,6 +12,7 @@ import SystemSetting from '../models/SystemSetting.js';
 import { authenticate, optionalAuth, authorize } from '../middleware/auth.js';
 import { directoryLimiter, profileViewLimiter } from '../middleware/rateLimiter.js';
 import { serializeProfile } from '../utils/serializeProfile.js';
+import { validateUniquePhone } from '../utils/identityValidator.js';
 
 const router = express.Router();
 
@@ -257,9 +258,22 @@ router.get('/:id', profileViewLimiter, optionalAuth, async (req, res) => {
 // PUT /api/students/profile - Update student profile (student only)
 router.put('/profile', authenticate, authorize('student'), async (req, res) => {
   try {
-    const updateData = { ...req.body };
+    const { name, phone, ...updateData } = req.body;
     delete updateData.userId;
     delete updateData.approvalStatus;
+
+    if (phone !== undefined && phone.trim()) {
+      const phoneValidation = await validateUniquePhone(phone, req.user._id, false);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ message: phoneValidation.message });
+      }
+      await User.findByIdAndUpdate(req.user._id, {
+        ...(name && { name }),
+        phone: phoneValidation.phone
+      });
+    } else if (name) {
+      await User.findByIdAndUpdate(req.user._id, { name });
+    }
 
     const profile = await StudentProfile.findOneAndUpdate(
       { userId: req.user._id },

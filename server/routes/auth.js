@@ -17,6 +17,7 @@ import {
   createAdminSessionAndTokens,
   clearAdminCookies
 } from '../utils/tokenService.js';
+import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
 
 const router = express.Router();
 
@@ -42,15 +43,24 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'You must accept the terms and consent to data processing under DPDP Act 2023.' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
+    const emailValidation = await validateUniqueEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
+
+    let validatedPhone = '';
+    if (phone && phone.trim()) {
+      const phoneValidation = await validateUniquePhone(phone, null, true);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ message: phoneValidation.message });
+      }
+      validatedPhone = phoneValidation.phone;
     }
 
     const user = await User.create({
       name,
-      email: email.toLowerCase(),
-      phone: phone || '',
+      email: emailValidation.email,
+      phone: validatedPhone,
       passwordHash: password,
       role,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
@@ -354,7 +364,24 @@ router.put('/profile', authenticate, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (name) user.name = name;
-    if (phone !== undefined) user.phone = phone;
+    if (phone !== undefined) {
+      if (phone && phone.trim()) {
+        const phoneValidation = await validateUniquePhone(phone, user._id, false);
+        if (!phoneValidation.isValid) {
+          return res.status(400).json({ message: phoneValidation.message });
+        }
+        user.phone = phoneValidation.phone;
+      } else {
+        user.phone = '';
+      }
+    }
+    if (req.body.email && req.body.email.trim().toLowerCase() !== user.email) {
+      const emailValidation = await validateUniqueEmail(req.body.email, user._id);
+      if (!emailValidation.isValid) {
+        return res.status(400).json({ message: emailValidation.message });
+      }
+      user.email = emailValidation.email;
+    }
     if (dateOfBirth) user.dateOfBirth = new Date(dateOfBirth);
     if (parentGuardianConsent !== undefined) user.parentGuardianConsent = Boolean(parentGuardianConsent);
 
