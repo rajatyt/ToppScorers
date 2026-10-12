@@ -52,14 +52,6 @@ const HeroSection = () => {
         className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-blue-950/30 pointer-events-none"
       />
 
-      {/* Layer 4: Educator Notebook & Architectural Grid Pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.06] pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
-          backgroundSize: '36px 36px'
-        }}
-      />
 
       {/* Layer 5: Stylized Floating Academic Motifs / Watermarks */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
