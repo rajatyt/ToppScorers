@@ -18,6 +18,7 @@ import {
   clearAdminCookies
 } from '../utils/tokenService.js';
 import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
+import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
 
 const router = express.Router();
 
@@ -32,7 +33,9 @@ router.post('/signup', async (req, res) => {
       role,
       dateOfBirth,
       parentGuardianConsent,
-      consentGiven
+      consentGiven,
+      city,
+      area
     } = req.body;
     
     if (!['student', 'teacher'].includes(role)) {
@@ -70,15 +73,28 @@ router.post('/signup', async (req, res) => {
     });
 
     let profile;
+    const initialCity = city ? city.trim() : '';
+    const initialArea = area ? area.trim() : '';
+
     if (role === 'teacher') {
+      const jobId = await generateTeacherJobId();
       profile = await TeacherProfile.create({ 
         userId: user._id,
+        jobId,
+        location: { city: initialCity },
+        area: initialArea,
         approvalStatus: 'pending',
         verificationStatus: 'pending',
         isVerified: false
       });
     } else {
-      profile = await StudentProfile.create({ userId: user._id });
+      const jobId = await generateStudentJobId();
+      profile = await StudentProfile.create({ 
+        userId: user._id,
+        jobId,
+        location: { city: initialCity },
+        area: initialArea
+      });
     }
 
     const { accessToken } = await createSessionAndTokens(user, req, res);
@@ -127,7 +143,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/google', async (req, res) => {
   try {
-    const { credential, role, consentGiven } = req.body;
+    const { credential, role, consentGiven, city, area } = req.body;
     if (!credential) {
       return res.status(400).json({ message: 'Google credential token is required' });
     }
@@ -163,29 +179,51 @@ router.post('/google', async (req, res) => {
         await user.save();
       }
 
-      const { accessToken } = await createSessionAndTokens(user, req, res);
-
       let profile = null;
       if (user.role === 'teacher') profile = await TeacherProfile.findOne({ userId: user._id });
       else if (user.role === 'student') profile = await StudentProfile.findOne({ userId: user._id });
 
+      // If existing user provided city/area now (or needed location), update their profile
+      if (city && area && profile) {
+        profile.location = profile.location || {};
+        profile.location.city = city.trim();
+        profile.area = area.trim();
+        await profile.save();
+      }
+
+      // If user profile has no location and none was submitted in this request, ask for location
+      if (profile && (!profile.location?.city || !profile.area)) {
+        return res.status(200).json({
+          needsLocation: true,
+          isNewUser: false,
+          role: user.role,
+          name: user.name,
+          email: user.email,
+          picture: user.avatar || picture,
+          message: 'District and area setup required'
+        });
+      }
+
+      const { accessToken } = await createSessionAndTokens(user, req, res);
       const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
       return res.json({ user: userWithoutPassword, profile, token: accessToken });
     }
 
-    // New user without role
-    if (!role || !['student', 'teacher'].includes(role)) {
+    // New user without role or location (District & Area required)
+    if (!role || !['student', 'teacher'].includes(role) || !city || !area) {
       return res.status(200).json({
         isNewUser: true,
+        needsLocation: true,
         email: email.toLowerCase(),
         name: name || 'Google User',
         picture: picture || null,
         googleId,
-        message: 'Role selection required'
+        role: ['student', 'teacher'].includes(role) ? role : null,
+        message: 'Role and location details required'
       });
     }
 
-    // Create new Google user
+    // Create new Google user with location
     user = await User.create({
       name: name || 'Google User',
       email: email.toLowerCase(),
@@ -199,16 +237,30 @@ router.post('/google', async (req, res) => {
     });
 
     let profile;
+    const initialLocation = { city: city.trim() };
+    const initialArea = area.trim();
+
     if (role === 'teacher') {
+      const jobId = await generateTeacherJobId();
       profile = await TeacherProfile.create({ 
         userId: user._id, 
+        jobId,
         profilePhotoUrl: picture || '',
+        location: initialLocation,
+        area: initialArea,
         approvalStatus: 'pending',
         verificationStatus: 'pending',
         isVerified: false
       });
     } else {
-      profile = await StudentProfile.create({ userId: user._id, profilePhotoUrl: picture || '' });
+      const jobId = await generateStudentJobId();
+      profile = await StudentProfile.create({ 
+        userId: user._id, 
+        jobId,
+        profilePhotoUrl: picture || '',
+        location: initialLocation,
+        area: initialArea
+      });
     }
 
     const { accessToken } = await createSessionAndTokens(user, req, res);
@@ -455,6 +507,7 @@ router.get('/dashboard-metrics', authenticate, async (req, res) => {
       metrics = {
         role: 'teacher',
         completeness,
+        jobId: profile?.jobId || '',
         incomingCount,
         sentCount,
         acceptedCount,
@@ -490,6 +543,7 @@ router.get('/dashboard-metrics', authenticate, async (req, res) => {
       metrics = {
         role: 'student',
         completeness,
+        jobId: profile?.jobId || '',
         savedCount,
         sentCount,
         incomingCount,

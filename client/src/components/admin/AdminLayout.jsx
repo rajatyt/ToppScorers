@@ -4,13 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
 import { 
   FiHome, FiLayout, FiUsers, FiUserCheck, FiHelpCircle, 
-  FiMenu, FiX, FiLogOut, FiExternalLink, FiClock, FiShield, FiAward
+  FiMenu, FiX, FiLogOut, FiExternalLink, FiClock, FiShield, FiAward, FiBell
 } from 'react-icons/fi';
-import { FaGraduationCap } from 'react-icons/fa';
+import { FaGraduationCap, FaHandshake } from 'react-icons/fa';
+import { NotificationContext } from '../../context/NotificationContext';
 
 const AdminLayout = ({ children }) => {
   const { t, i18n } = useTranslation();
   const { adminUser, adminLogout } = useContext(AdminAuthContext);
+  const { adminUnread, markAdminSectionViewed } = useContext(NotificationContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const location = useLocation();
@@ -26,6 +28,19 @@ const AdminLayout = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // WhatsApp / Instagram style: when admin opens a section, notification badge vanishes instantly!
+  useEffect(() => {
+    if (location.pathname.includes('/admin/connections')) {
+      markAdminSectionViewed('connections');
+    } else if (location.pathname.includes('/admin/verifications')) {
+      markAdminSectionViewed('verifications');
+    } else if (location.pathname.includes('/admin/queries')) {
+      markAdminSectionViewed('queries');
+    } else if (location.pathname.includes('/admin/moderation')) {
+      markAdminSectionViewed('reports');
+    }
+  }, [location.pathname, markAdminSectionViewed]);
+
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en');
   };
@@ -37,16 +52,20 @@ const AdminLayout = ({ children }) => {
 
   const navLinks = [
     { to: '/admin', icon: <FiHome className="text-lg" />, label: 'Dashboard', desc: 'Overview & metrics' },
-    { to: '/admin/verifications', icon: <FiAward className="text-lg" />, label: 'Verification Queue', desc: 'Teacher review & badge' },
+    { to: '/admin/connections', icon: <FaHandshake className="text-lg text-amber-400" />, label: 'Connections & Leads', desc: 'Direct matchmaking & commission', badgeKey: 'connections' },
+    { to: '/admin/queries', icon: <FiHelpCircle className="text-lg text-sky-400" />, label: 'User Queries & Doubts', desc: 'Direct issue resolution', badgeKey: 'queries' },
+    { to: '/admin/verifications', icon: <FiAward className="text-lg" />, label: 'Verification Queue', desc: 'Teacher review & badge', badgeKey: 'verifications' },
     { to: '/admin/widgets', icon: <FiLayout className="text-lg" />, label: 'Widget Manager', desc: 'Homepage sections' },
     { to: '/admin/profiles', icon: <FiUsers className="text-lg" />, label: 'Profile Manager', desc: 'Teachers & students' },
     { to: '/admin/users', icon: <FiUserCheck className="text-lg" />, label: 'User Manager', desc: 'Accounts & sessions' },
-    { to: '/admin/moderation', icon: <FiShield className="text-lg" />, label: 'Moderation & Logs', desc: 'Safety, audit, reports' },
+    { to: '/admin/moderation', icon: <FiShield className="text-lg" />, label: 'Moderation & Logs', desc: 'Safety, audit, reports', badgeKey: 'reports' },
     { to: '/admin/faqs', icon: <FiHelpCircle className="text-lg" />, label: 'FAQ Editor', desc: 'Bilingual content' },
   ];
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path.includes('/connections')) return 'Connection Leads & Commission Matchmaking';
+    if (path.includes('/queries')) return 'User Queries, Doubts & Direct Support';
     if (path.includes('/verifications')) return 'Teacher Verification Queue';
     if (path.includes('/widgets')) return 'Widget & Layout Manager';
     if (path.includes('/profiles')) return 'Profile Management';
@@ -127,7 +146,14 @@ const AdminLayout = ({ children }) => {
                   {link.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium leading-tight truncate">{link.label}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium leading-tight truncate">{link.label}</span>
+                    {link.badgeKey && adminUnread?.[link.badgeKey] > 0 && (
+                      <span className="ml-2 px-1.5 py-0.2 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                        {adminUnread[link.badgeKey]}
+                      </span>
+                    )}
+                  </div>
                   <div className={`text-[11px] leading-tight truncate ${isActive ? 'text-slate-900/80' : 'text-slate-500'}`}>
                     {link.desc}
                   </div>
@@ -197,6 +223,24 @@ const AdminLayout = ({ children }) => {
             </div>
             
             <div className="flex items-center space-x-3 sm:space-x-4">
+              {/* Notifications Bell */}
+              <div 
+                className="relative p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                title={`${adminUnread?.total || 0} unread notification(s)`}
+                onClick={() => {
+                  if (adminUnread?.connections > 0) navigate('/admin/connections');
+                  else if (adminUnread?.verifications > 0) navigate('/admin/verifications');
+                  else if (adminUnread?.reports > 0) navigate('/admin/moderation');
+                }}
+              >
+                <FiBell className="text-base text-slate-700" />
+                {adminUnread?.total > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                    {adminUnread.total}
+                  </span>
+                )}
+              </div>
+
               {/* Clock badge */}
               <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-medium text-slate-600 border border-slate-200">
                 <FiClock className="text-slate-400" />

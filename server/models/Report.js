@@ -9,7 +9,8 @@ const reportSchema = new mongoose.Schema({
     enum: ['inappropriate_content', 'spam_or_fraud', 'fake_profile', 'harassment', 'other'] 
   },
   description: { type: String, default: '' },
-  status: { type: String, enum: ['pending', 'reviewed', 'dismissed'], default: 'pending' }
+  status: { type: String, enum: ['pending', 'reviewed', 'dismissed'], default: 'pending' },
+  viewedByAdmin: { type: Boolean, default: false }
 }, { timestamps: true });
 
 reportSchema.index({ targetId: 1, status: 1 });

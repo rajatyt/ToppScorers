@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { ensureAdminAccount } from '../utils/ensureAdmin.js';
+import { backfillJobIds } from '../utils/jobIdHelper.js';
 
 const connectDB = async () => {
   try {
@@ -9,6 +10,8 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     // Ensure default administrator account is guaranteed to exist
     await ensureAdminAccount();
+    // Ensure all teacher and student listings have unique Job IDs
+    await backfillJobIds();
   } catch (error) {
     console.error(`\x1b[33m[MongoDB Warning]\x1b[0m Could not connect to MongoDB at ${process.env.MONGODB_URI}`);
     console.error(`Reason: ${error.message}`);

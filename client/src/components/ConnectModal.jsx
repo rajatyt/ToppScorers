@@ -8,7 +8,6 @@ import { FaUserPlus, FaTimes, FaShieldAlt, FaLock, FaArrowRight, FaClock, FaExcl
 const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificationNotice, setVerificationNotice] = useState(null);
 
@@ -19,7 +18,6 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
 
   const handleModalClose = () => {
     setVerificationNotice(null);
-    setMessage('');
     onClose();
   };
 
@@ -34,8 +32,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
     setVerificationNotice(null);
     try {
       await api.post('/connections', {
-        toUserId: targetUser._id,
-        message: message.trim() || undefined
+        toUserId: targetUser._id
       });
       toast.success(`Connection request sent to ${targetName}!`);
       if (onSuccess) onSuccess();
@@ -137,19 +134,6 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Introduction Message (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={`Hi ${targetName}, I found your profile on ToppScorers and would like to discuss tuition...`}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 placeholder:text-slate-400"
-                />
-              </div>
-
               <div className="flex items-center space-x-3 pt-2">
                 <button
                   type="button"

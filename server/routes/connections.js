@@ -78,6 +78,9 @@ router.post('/', async (req, res) => {
       existing.toUserId = toUserId;
       existing.message = message || 'Hi, I would like to connect with you regarding tuition on ToppScorers.';
       existing.status = 'pending';
+      existing.viewedByToUser = false;
+      existing.viewedByFromUser = true;
+      existing.viewedByAdmin = false;
       await existing.save();
       return res.json({ message: 'Connection request sent successfully', request: existing });
     }
@@ -86,7 +89,10 @@ router.post('/', async (req, res) => {
       fromUserId,
       toUserId,
       message: message || 'Hi, I would like to connect with you regarding tuition on ToppScorers.',
-      status: 'pending'
+      status: 'pending',
+      viewedByToUser: false,
+      viewedByFromUser: true,
+      viewedByAdmin: false
     });
 
     res.status(201).json({ message: 'Connection request sent successfully', request: newRequest });
@@ -200,12 +206,98 @@ router.patch('/:id', async (req, res) => {
     }
 
     request.status = action === 'accept' ? 'accepted' : 'declined';
+    request.viewedByFromUser = false; // Notify initiator that their request was accepted/declined
+    request.viewedByToUser = true;   // Recipient just performed the action
+    request.viewedByAdmin = false;   // Notify admin of the update
     await request.save();
 
     res.json({
       message: `Connection request ${request.status}`,
       request
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/connections/unread-counts - Get WhatsApp/Instagram style unread badge counts
+router.get('/unread-counts', async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Incoming unread: requests sent to this user that are pending and unviewed
+    const incomingCount = await ConnectionRequest.countDocuments({
+      toUserId: userId,
+      status: 'pending',
+      viewedByToUser: false
+    });
+
+    // Outgoing/Sent unread: requests sent by this user that were declined or updated and unviewed
+    const sentCount = await ConnectionRequest.countDocuments({
+      fromUserId: userId,
+      status: 'declined',
+      viewedByFromUser: false
+    });
+
+    // Connected unread: accepted connections involving this user that have not been viewed yet
+    const acceptedCount = await ConnectionRequest.countDocuments({
+      status: 'accepted',
+      $or: [
+        { fromUserId: userId, viewedByFromUser: false },
+        { toUserId: userId, viewedByToUser: false }
+      ]
+    });
+
+    const total = incomingCount + sentCount + acceptedCount;
+
+    res.json({
+      incoming: incomingCount,
+      sent: sentCount,
+      accepted: acceptedCount,
+      total
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/connections/mark-viewed - Instantly clear notification count when a section is opened
+router.post('/mark-viewed', async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { type } = req.body; // 'incoming' | 'outgoing' | 'sent' | 'accepted' | 'all'
+
+    if (type === 'incoming') {
+      await ConnectionRequest.updateMany(
+        { toUserId: userId, status: 'pending', viewedByToUser: false },
+        { $set: { viewedByToUser: true } }
+      );
+    } else if (type === 'outgoing' || type === 'sent') {
+      await ConnectionRequest.updateMany(
+        { fromUserId: userId, viewedByFromUser: false },
+        { $set: { viewedByFromUser: true } }
+      );
+    } else if (type === 'accepted' || type === 'connected') {
+      await ConnectionRequest.updateMany(
+        { fromUserId: userId, status: 'accepted', viewedByFromUser: false },
+        { $set: { viewedByFromUser: true } }
+      );
+      await ConnectionRequest.updateMany(
+        { toUserId: userId, status: 'accepted', viewedByToUser: false },
+        { $set: { viewedByToUser: true } }
+      );
+    } else if (type === 'all') {
+      await ConnectionRequest.updateMany(
+        { toUserId: userId, viewedByToUser: false },
+        { $set: { viewedByToUser: true } }
+      );
+      await ConnectionRequest.updateMany(
+        { fromUserId: userId, viewedByFromUser: false },
+        { $set: { viewedByFromUser: true } }
+      );
+    }
+
+    res.json({ message: `Section ${type || 'all'} marked as viewed` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

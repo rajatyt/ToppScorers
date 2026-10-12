@@ -3,6 +3,7 @@ import './User.js';
 
 const studentProfileSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  jobId: { type: String, unique: true, sparse: true, index: true },
   classOrExam: { type: String, default: '' },
   classLevel: { type: String, default: '' },
   subjectsNeeded: [{ type: String }],
@@ -41,6 +42,24 @@ const studentProfileSchema = new mongoose.Schema({
     pauseProfile: { type: Boolean, default: false }
   }
 }, { timestamps: true });
+
+studentProfileSchema.pre('save', async function (next) {
+  if (!this.jobId) {
+    try {
+      const count = await this.constructor.countDocuments({ jobId: { $exists: true, $ne: '' } });
+      let nextNum = 1001 + count;
+      let candidate = `JOB-S${nextNum}`;
+      while (await this.constructor.findOne({ jobId: candidate })) {
+        nextNum++;
+        candidate = `JOB-S${nextNum}`;
+      }
+      this.jobId = candidate;
+    } catch (err) {
+      console.error('Error generating student jobId in pre-save:', err);
+    }
+  }
+  next();
+});
 
 studentProfileSchema.index({ 'location.city': 1, approvalStatus: 1 });
 studentProfileSchema.index({ subjectsNeeded: 1 });

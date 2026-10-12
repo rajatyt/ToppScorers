@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import SectionDivider from '../common/SectionDivider';
 
 const FAQSection = () => {
   const { t, i18n } = useTranslation();
@@ -37,7 +38,7 @@ const FAQSection = () => {
   if (!faqs || faqs.length === 0) return null;
 
   return (
-    <section className="py-24 bg-white">
+    <section className="relative pt-20 pb-28 sm:pb-36 bg-white overflow-hidden">
       <div className="container mx-auto px-6 md:px-12 lg:px-24 max-w-4xl">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-slate-900 mb-12">
           {t('faq.heading')}
@@ -78,6 +79,14 @@ const FAQSection = () => {
           ))}
         </div>
       </div>
+
+      {/* Modern Wave Section Divider Transition into Footer */}
+      <SectionDivider 
+        toColor="text-slate-900" 
+        accentColor="rgba(245, 158, 11, 0.2)" 
+        flip={true}
+        className="absolute bottom-0 left-0 right-0 z-10" 
+      />
     </section>
   );
 };

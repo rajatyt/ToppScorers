@@ -7,12 +7,13 @@ import { toast } from 'react-hot-toast';
 import {
   FaGraduationCap, FaChalkboardTeacher, FaUserGraduate, FaBook,
   FaPencilAlt, FaFlask, FaAtom, FaCalculator, FaGlobe, FaLaptop,
-  FaLightbulb, FaMicroscope,
+  FaLightbulb, FaMicroscope, FaMapMarkerAlt,
 } from 'react-icons/fa';
 import {
   FiLogIn, FiUserCheck, FiBookOpen, FiArrowRight, FiArrowLeft,
   FiMail, FiLock, FiUser, FiPhone, FiCheckCircle,
 } from 'react-icons/fi';
+import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
 /* ────────────────────────────  floating icons  ──────────────────────────── */
 const FLOATING_ICONS = [
@@ -97,12 +98,16 @@ const Auth = () => {
   const [view, setView] = useState('cards');
   const [loading, setLoading] = useState(false);
 
-  // Google role selection modal
+  // Google role & location selection modal
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [googleUser, setGoogleUser] = useState(null);
+  const [googleSelectedRole, setGoogleSelectedRole] = useState('student');
+  const [googleDistrict, setGoogleDistrict] = useState('');
+  const [googleArea, setGoogleArea] = useState('');
 
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', confirmPassword: '',
+    district: '', area: '',
     dateOfBirth: '', parentGuardianConsent: false, consentGiven: false
   });
 
@@ -142,6 +147,14 @@ const Auth = () => {
   const handleSignup = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) { toast.error(t('auth.passwordsMismatch')); return; }
+    if (!formData.district) {
+      toast.error('Please select your District (Fatehpur).');
+      return;
+    }
+    if (!formData.area) {
+      toast.error('Please select your Area / Locality.');
+      return;
+    }
     if (!formData.consentGiven) {
       toast.error('You must consent to data processing under DPDP Act 2023 to register.');
       return;
@@ -154,6 +167,8 @@ const Auth = () => {
         phone: formData.phone,
         password: formData.password,
         role: view,
+        city: formData.district,
+        area: formData.area,
         dateOfBirth: formData.dateOfBirth || undefined,
         parentGuardianConsent: formData.parentGuardianConsent,
         consentGiven: true
@@ -169,24 +184,64 @@ const Auth = () => {
       setLoading(true);
       const targetRole = view === 'login' || view === 'cards' ? undefined : view;
       const res = await googleAuth({ credential: credentialResponse.credential, role: targetRole });
-      if (res?.isNewUser) {
-        setGoogleUser({ credential: credentialResponse.credential, name: res.name, email: res.email, picture: res.picture });
+      
+      // If user is new OR needs district & area setup, trigger the location popup modal
+      if (res?.isNewUser || res?.needsLocation) {
+        setGoogleUser({
+          credential: credentialResponse.credential,
+          name: res.name,
+          email: res.email,
+          picture: res.picture,
+          isNewUser: res.isNewUser
+        });
+        setGoogleSelectedRole(res.role || (view === 'teacher' ? 'teacher' : 'student'));
+        setGoogleDistrict('');
+        setGoogleArea('');
         setShowRoleModal(true);
         return;
       }
+
       toast.success(t('auth.googleSignInSuccess'));
       navigate(res.user?.role === 'admin' ? '/admin' : '/');
-    } catch (err) { toast.error(err.response?.data?.message || t('auth.googleSignInError')); } finally { setLoading(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('auth.googleSignInError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleConfirmGoogleRole = async (selectedRole) => {
+  const handleConfirmGoogleProfile = async (e) => {
+    e?.preventDefault();
+    if (!googleSelectedRole) {
+      toast.error('Please choose whether you are a Student or Teacher.');
+      return;
+    }
+    if (!googleDistrict) {
+      toast.error('Please select your District (Fatehpur).');
+      return;
+    }
+    if (!googleArea) {
+      toast.error('Please select your Area / Locality.');
+      return;
+    }
+
     try {
       setLoading(true);
-      await googleAuth({ credential: googleUser.credential, role: selectedRole });
+      const res = await googleAuth({
+        credential: googleUser.credential,
+        role: googleSelectedRole,
+        city: googleDistrict,
+        area: googleArea
+      });
+
       setShowRoleModal(false);
-      toast.success(t('auth.accountCreatedAs', { role: selectedRole }));
-      navigate('/');
-    } catch (err) { toast.error(err.response?.data?.message || t('auth.failedRegistration')); } finally { setLoading(false); }
+      toast.success(`Welcome to ToppScorers, ${googleUser.name || 'User'}!`);
+      navigate(res.user?.role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('auth.failedRegistration'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ───────── Card-chooser view (initial landing) ───────── */
@@ -371,6 +426,57 @@ const Auth = () => {
               <Input icon={FiUser} label={t('auth.name')} name="name" type="text" required placeholder={t('auth.namePlaceholder')} value={formData.name} onChange={handleChange} />
               <Input icon={FiMail} label={t('auth.email')} name="email" type="email" required placeholder={t('auth.emailPlaceholder')} value={formData.email} onChange={handleChange} />
               <Input icon={FiPhone} label={t('auth.phone')} name="phone" type="tel" required placeholder={t('auth.phonePlaceholder')} value={formData.phone} onChange={handleChange} />
+              
+              {/* Location: District and Cascading Area */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/60 rounded-xl border border-amber-200/70">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                    <FaMapMarkerAlt className="text-amber-500 mr-1" size={12} />
+                    District *
+                  </label>
+                  <select
+                    name="district"
+                    value={formData.district}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        district: e.target.value,
+                        area: ''
+                      });
+                    }}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium"
+                  >
+                    <option value="">Select District</option>
+                    {DISTRICTS.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                    <FaMapMarkerAlt className="text-amber-500 mr-1" size={12} />
+                    Area / Locality *
+                  </label>
+                  <select
+                    name="area"
+                    value={formData.area}
+                    onChange={handleChange}
+                    disabled={!formData.district}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {formData.district ? `Select Area in ${formData.district}` : 'Select District first'}
+                    </option>
+                    {formData.district && DISTRICT_AREAS[formData.district]?.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <Input icon={FiLock} label={t('auth.password')} name="password" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.password} onChange={handleChange} />
               <Input icon={FiLock} label={t('auth.confirmPassword')} name="confirmPassword" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.confirmPassword} onChange={handleChange} />
               
@@ -470,58 +576,153 @@ const Auth = () => {
         {view === 'cards' ? renderCardChooser() : renderForm()}
       </div>
 
-      {/* ─── Google Role Selection Modal ─── */}
+      {/* ─── Google Role & Location Popup Modal ─── */}
       {showRoleModal && googleUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 border border-slate-100 animate-fadeInUp">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 border border-slate-100 animate-fadeInUp my-6">
             <div className="text-center mb-6">
               {googleUser.picture ? (
-                <img src={googleUser.picture} alt={googleUser.name}
-                  className="w-16 h-16 rounded-full mx-auto mb-3 border-2 border-amber-400 shadow-sm" />
+                <img
+                  src={googleUser.picture}
+                  alt={googleUser.name}
+                  className="w-16 h-16 rounded-full mx-auto mb-3 border-2 border-amber-400 shadow-md object-cover"
+                />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-slate-900 text-white text-xl font-bold flex items-center justify-center mx-auto mb-3">
+                <div className="w-16 h-16 rounded-full bg-slate-900 text-white text-xl font-bold flex items-center justify-center mx-auto mb-3 shadow-md">
                   {googleUser.name?.charAt(0) || 'G'}
                 </div>
               )}
-              <h3 className="text-xl font-extrabold text-slate-900">{t('auth.welcomeTo')}, {googleUser.name}!</h3>
-              <p className="text-xs text-slate-500 mt-1">{t('auth.roleSelectionTitle')}</p>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Welcome, {googleUser.name}!
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Please select your role and location in <strong>Fatehpur</strong> to complete your account setup.
+              </p>
             </div>
 
-            <div className="space-y-3">
-              <button type="button" onClick={() => handleConfirmGoogleRole('student')} disabled={loading}
-                className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50
-                           flex items-center justify-between text-left transition-all group">
-                <div className="flex items-center space-x-3.5">
-                  <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 group-hover:scale-105 transition-transform">
-                    <FaUserGraduate size={20} />
-                  </div>
+            <form onSubmit={handleConfirmGoogleProfile} className="space-y-4">
+              {/* Role Selection */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                  Select Your Role *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGoogleSelectedRole('student')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all flex items-center space-x-3 cursor-pointer ${
+                      googleSelectedRole === 'student'
+                        ? 'border-emerald-500 bg-emerald-50/70 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl flex-shrink-0 ${
+                      googleSelectedRole === 'student' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <FaUserGraduate size={16} />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-900 text-xs">Student / Parent</div>
+                      <div className="text-[10px] text-slate-500">Find Tutors</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGoogleSelectedRole('teacher')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all flex items-center space-x-3 cursor-pointer ${
+                      googleSelectedRole === 'teacher'
+                        ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl flex-shrink-0 ${
+                      googleSelectedRole === 'teacher' ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <FaChalkboardTeacher size={16} />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-900 text-xs">Teacher / Tutor</div>
+                      <div className="text-[10px] text-slate-500">Teach Students</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Location: District & Area */}
+              <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-3">
+                <div className="flex items-center space-x-2 pb-2 border-b border-amber-200/60">
+                  <FaMapMarkerAlt className="text-amber-600 text-xs" />
+                  <span className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                    Location Setup (Fatehpur)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <div className="font-bold text-slate-900 text-sm">{t('auth.imStudentInstitute')}</div>
-                    <div className="text-xs text-slate-500">{t('auth.findTeachersGoogle')}</div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1 text-[10px]" />
+                      District *
+                    </label>
+                    <select
+                      value={googleDistrict}
+                      onChange={(e) => {
+                        setGoogleDistrict(e.target.value);
+                        setGoogleArea('');
+                      }}
+                      required
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium"
+                    >
+                      <option value="">Select District</option>
+                      {DISTRICTS.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1 text-[10px]" />
+                      Area / Locality *
+                    </label>
+                    <select
+                      value={googleArea}
+                      onChange={(e) => setGoogleArea(e.target.value)}
+                      disabled={!googleDistrict}
+                      required
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {googleDistrict ? `Select Area in ${googleDistrict}` : 'Select District first'}
+                      </option>
+                      {googleDistrict && DISTRICT_AREAS[googleDistrict]?.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                <FiArrowRight className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all hover:scale-[1.01] flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer pt-3"
+              >
+                <span>{loading ? 'Finalizing Setup...' : 'Confirm & Complete Registration'}</span>
+                <FiArrowRight />
               </button>
 
-              <button type="button" onClick={() => handleConfirmGoogleRole('teacher')} disabled={loading}
-                className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50
-                           flex items-center justify-between text-left transition-all group">
-                <div className="flex items-center space-x-3.5">
-                  <div className="p-2.5 rounded-xl bg-blue-100 text-blue-700 group-hover:scale-105 transition-transform">
-                    <FaChalkboardTeacher size={20} />
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-900 text-sm">{t('auth.imTeacherTutor')}</div>
-                    <div className="text-xs text-slate-500">{t('auth.findOpportunitiesGoogle')}</div>
-                  </div>
-                </div>
-                <FiArrowRight className="text-slate-400 group-hover:text-blue-600 transition-colors" />
-              </button>
-            </div>
-
-            <div className="mt-5 text-center">
-              <button type="button" onClick={() => setShowRoleModal(false)} className="text-xs text-slate-400 hover:text-slate-600">{t('auth.cancel')}</button>
-            </div>
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowRoleModal(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 font-medium cursor-pointer"
+                >
+                  {t('auth.cancel', 'Cancel')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

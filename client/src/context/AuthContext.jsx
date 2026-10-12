@@ -57,11 +57,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const googleAuth = async ({ credential, role }) => {
+  const googleAuth = async ({ credential, role, city, area }) => {
     try {
       sessionStorage.removeItem('verification_prompt_dismissed');
-      const res = await api.post('/auth/google', { credential, role });
-      if (!res.data.isNewUser && res.data.user) {
+      const res = await api.post('/auth/google', { credential, role, city, area });
+      if (!res.data.isNewUser && !res.data.needsLocation && res.data.user) {
         setUser(res.data.user);
         setProfile(res.data.profile || null);
       }

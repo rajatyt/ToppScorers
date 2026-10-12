@@ -7,8 +7,10 @@ import { toast } from 'react-hot-toast';
 import {
   FaUserEdit, FaGraduationCap, FaAward, FaCheckCircle,
   FaShieldAlt, FaSave, FaArrowLeft, FaClock, FaExclamationTriangle,
-  FaBook, FaBuilding, FaVideo, FaUserFriends, FaMapMarkerAlt
+  FaBook, FaBuilding, FaVideo, FaUserFriends, FaMapMarkerAlt,
+  FaBookOpen, FaRupeeSign
 } from 'react-icons/fa';
+import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
 const TeacherProfileEdit = () => {
   const { t } = useTranslation();
@@ -26,14 +28,21 @@ const TeacherProfileEdit = () => {
     bio: '',
     subjects: '',
     exams: '',
-    teachingMode: 'all',
-    feeAmount: 1500,
+    teachingMode: 'home',
+    feeAmount: 3000,
     feePeriod: 'monthly',
     availability: 'Flexible (Morning / Evening)',
     area: '',
     city: '',
     state: '',
     pincode: '',
+
+    // Requirement Details
+    board: 'ICSE',
+    preferredTime: 'After 4',
+    daysPerWeek: '6 days a week',
+    tutorGender: 'Any',
+    studentGender: 'Female',
 
     // Qualifications & Credentials
     highestDegree: '',
@@ -75,14 +84,21 @@ const TeacherProfileEdit = () => {
           bio: p.bio || '',
           subjects: Array.isArray(p.subjects) ? p.subjects.join(', ') : '',
           exams: Array.isArray(p.exams) ? p.exams.join(', ') : '',
-          teachingMode: p.teachingMode || 'all',
-          feeAmount: p.fee?.amount || 1500,
+          teachingMode: p.teachingMode || 'home',
+          feeAmount: p.fee?.amount || 3000,
           feePeriod: p.fee?.period || 'monthly',
           availability: p.availability || 'Flexible (Morning / Evening)',
           area: p.area || '',
           city: p.location?.city || '',
           state: p.location?.state || '',
           pincode: p.location?.pincode || '',
+
+          // Requirement Details
+          board: p.board || 'ICSE',
+          preferredTime: p.preferredTime || p.preferredTiming || 'After 4',
+          daysPerWeek: p.daysPerWeek || '6 days a week',
+          tutorGender: p.tutorGender || 'Any',
+          studentGender: p.studentGender || 'Female',
 
           // Qualifications
           highestDegree: p.degreeDetails?.highestDegree || '',
@@ -128,10 +144,15 @@ const TeacherProfileEdit = () => {
         exams: formData.exams.split(',').map(e => e.trim()).filter(Boolean),
         teachingMode: formData.teachingMode,
         fee: {
-          amount: Number(formData.feeAmount) || 1500,
+          amount: Number(formData.feeAmount) || 3000,
           period: formData.feePeriod
         },
         availability: formData.availability,
+        board: formData.board,
+        preferredTime: formData.preferredTime,
+        daysPerWeek: formData.daysPerWeek,
+        tutorGender: formData.tutorGender,
+        studentGender: formData.studentGender,
         area: formData.area,
         location: {
           city: formData.city,
@@ -682,46 +703,95 @@ const TeacherProfileEdit = () => {
                 </div>
               </div>
 
-              {/* Teaching Mode, Fee & Location */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100">
-                  {t('profileEdit.teachingMode')}, {t('profileEdit.tutoringFee')} & {t('profileEdit.city')}
-                </h3>
+              {/* Requirement Details */}
+              <div className="bg-white rounded-2xl border-2 border-amber-400/40 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+                <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-amber-100">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold">
+                    <FaBookOpen size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Requirement Details
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Complete your tutoring requirement specifications for students and parents
+                    </p>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Subjects */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Subjects
+                    </label>
+                    <input
+                      type="text"
+                      name="subjects"
+                      value={formData.subjects}
+                      onChange={handleChange}
+                      placeholder="e.g. All Subjects, or Mathematics, Physics"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Board */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.teachingMode')}
+                      Board
+                    </label>
+                    <select
+                      name="board"
+                      value={formData.board}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-bold"
+                    >
+                      <option value="ICSE">ICSE</option>
+                      <option value="CBSE">CBSE</option>
+                      <option value="UP Board">UP Board</option>
+                      <option value="State Board">State Board</option>
+                      <option value="All Boards">All Boards</option>
+                    </select>
+                  </div>
+
+                  {/* Tuition Mode */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Tuition Mode
                     </label>
                     <select
                       name="teachingMode"
                       value={formData.teachingMode}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-bold uppercase"
                     >
-                      <option value="all">{t('profileEdit.modeAll')}</option>
-                      <option value="online">{t('profileEdit.modeOnline')}</option>
-                      <option value="home">{t('profileEdit.modeOffline')}</option>
-                      <option value="institute">Coaching / Institute Only</option>
+                      <option value="HOME">HOME</option>
+                      <option value="ONLINE">ONLINE</option>
+                      <option value="BOTH">BOTH (HOME & ONLINE)</option>
+                      <option value="INSTITUTE">INSTITUTE</option>
                     </select>
                   </div>
 
+                  {/* Budget / Rate */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.tutoringFee')}
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaRupeeSign className="text-amber-500 mr-0.5" />
+                      Budget / Rate
                     </label>
                     <input
                       type="number"
                       name="feeAmount"
                       value={formData.feeAmount}
                       onChange={handleChange}
+                      placeholder="e.g. 3000"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     />
                   </div>
 
+                  {/* Rate Period */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Fee Period
+                      Fee Frequency
                     </label>
                     <select
                       name="feePeriod"
@@ -735,32 +805,128 @@ const TeacherProfileEdit = () => {
                     </select>
                   </div>
 
+                  {/* Preferred Time */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.locality')}
+                      Preferred Time
                     </label>
                     <input
                       type="text"
-                      name="area"
-                      value={formData.area}
+                      name="preferredTime"
+                      value={formData.preferredTime}
                       onChange={handleChange}
-                      placeholder="e.g. Indiranagar / Sector 62"
+                      placeholder="e.g. After 4, Evening"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     />
                   </div>
 
+                  {/* Days per Week */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.city')}
+                      Days per Week
                     </label>
-                    <input
-                      type="text"
+                    <select
+                      name="daysPerWeek"
+                      value={formData.daysPerWeek}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    >
+                      <option value="6 days a week">6 days a week</option>
+                      <option value="5 days a week">5 days a week</option>
+                      <option value="4 days a week">4 days a week</option>
+                      <option value="3 days a week">3 days a week</option>
+                      <option value="Weekend only">Weekend only</option>
+                      <option value="Flexible">Flexible</option>
+                    </select>
+                  </div>
+
+                  {/* Tutor Gender */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Tutor Gender
+                    </label>
+                    <select
+                      name="tutorGender"
+                      value={formData.tutorGender}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    >
+                      <option value="Any">Any</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+
+                  {/* Student Gender */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Student Gender
+                    </label>
+                    <select
+                      name="studentGender"
+                      value={formData.studentGender}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    >
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Any">Any</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location & Coverage */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
+                <h3 className="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center">
+                  <FaMapMarkerAlt className="text-amber-500 mr-2" />
+                  Location & Coverage (Fatehpur)
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1" />
+                      District
+                    </label>
+                    <select
                       name="city"
                       value={formData.city}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          city: e.target.value,
+                          area: '' // reset area when district changes
+                        });
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-semibold"
+                    >
+                      <option value="">Select District</option>
+                      {DISTRICTS.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1" />
+                      {t('profileEdit.locality')}
+                    </label>
+                    <select
+                      name="area"
+                      value={formData.area}
                       onChange={handleChange}
-                      placeholder="e.g. Delhi, Bengaluru"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                    />
+                      disabled={!formData.city}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed font-medium"
+                    >
+                      <option value="">
+                        {formData.city ? `Select Area in ${formData.city}` : 'Select District first'}
+                      </option>
+                      {formData.city && DISTRICT_AREAS[formData.city]?.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -772,7 +938,7 @@ const TeacherProfileEdit = () => {
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
-                      placeholder="e.g. 110001"
+                      placeholder="e.g. 211001"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     />
                   </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { FiTarget, FiAward, FiVideo, FiShield, FiHome, FiPhone } from 'react-icons/fi';
+import SectionDivider from '../common/SectionDivider';
 
 const WhyTeacherHunt = () => {
   const { t } = useTranslation();
@@ -16,7 +17,7 @@ const WhyTeacherHunt = () => {
   ];
 
   return (
-    <section className="py-24 bg-slate-900 text-white">
+    <section className="relative pt-20 pb-28 sm:pb-36 bg-slate-900 text-white overflow-hidden">
       <div className="container mx-auto px-6 md:px-12 lg:px-24">
         <div className="text-center mb-16">
           <p className="text-amber-500 font-bold tracking-wider uppercase text-sm mb-2">{t('why.eyebrow')}</p>
@@ -43,6 +44,13 @@ const WhyTeacherHunt = () => {
           ))}
         </div>
       </div>
+
+      {/* Modern Wave Section Divider Transition into ForTeachers */}
+      <SectionDivider 
+        toColor="text-white" 
+        accentColor="rgba(245, 158, 11, 0.2)" 
+        className="absolute bottom-0 left-0 right-0 z-10" 
+      />
     </section>
   );
 };

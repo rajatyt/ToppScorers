@@ -10,16 +10,20 @@ import {
   FaCheckCircle, FaEye, FaBookmark, FaCog, FaShieldAlt, FaArrowRight,
   FaClock, FaExclamationTriangle, FaAward
 } from 'react-icons/fa';
-import { FiSliders, FiUser, FiLock } from 'react-icons/fi';
+import { FiSliders, FiUser, FiLock, FiCopy, FiCheck } from 'react-icons/fi';
+import { NotificationContext } from '../context/NotificationContext';
+import EarningsCalculator from '../components/teacher/EarningsCalculator';
 
 const Dashboard = () => {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user, profile, isAuthenticated } = useContext(AuthContext);
+  const { unreadCounts } = useContext(NotificationContext);
   const navigate = useNavigate();
 
   const [metrics, setMetrics] = useState(null);
   const [savedProfiles, setSavedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copiedJobId, setCopiedJobId] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -56,6 +60,7 @@ const Dashboard = () => {
 
   const isTeacher = user?.role === 'teacher';
   const completeness = metrics?.completeness || 40;
+  const myJobId = metrics?.jobId || profile?.jobId;
 
   return (
     <div className="min-h-screen bg-slate-50/70 py-8 px-4 sm:px-6 lg:px-8">
@@ -64,9 +69,32 @@ const Dashboard = () => {
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2">
-                {isTeacher ? 'Teacher Control Center' : 'Student Control Center'}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
+                  {isTeacher ? 'Teacher Control Center' : 'Student Control Center'}
+                </span>
+                {myJobId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(myJobId);
+                      setCopiedJobId(true);
+                      toast.success(`Copied Job ID: ${myJobId}`);
+                      setTimeout(() => setCopiedJobId(false), 2000);
+                    }}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30 font-mono text-xs font-bold transition-all cursor-pointer shadow-2xs backdrop-blur-xs"
+                    title="Click to copy your Job ID"
+                  >
+                    <span className="text-slate-300 font-sans text-[10px] uppercase font-bold tracking-wider">YOUR JOB ID:</span>
+                    <span className="text-amber-300">{myJobId}</span>
+                    {copiedJobId ? (
+                      <FiCheck className="text-emerald-400 text-xs ml-0.5" />
+                    ) : (
+                      <FiCopy className="text-slate-300 text-xs ml-0.5" />
+                    )}
+                  </button>
+                )}
+              </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Welcome back, {user?.name}!
               </h1>
@@ -313,12 +341,19 @@ const Dashboard = () => {
           )}
         </div>
 
+        {/* Teacher-Only Earnings Calculator */}
+        {isTeacher && (
+          <div className="mb-8">
+            <EarningsCalculator />
+          </div>
+        )}
+
         {/* Quick Shortcuts */}
         <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs mb-8">
           <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               to={isTeacher ? '/students' : '/teachers'}
               className="p-4 rounded-2xl border border-slate-200/80 hover:border-amber-400 hover:bg-amber-50/40 flex items-center justify-between group transition-all"
@@ -343,6 +378,24 @@ const Dashboard = () => {
                 <div className="text-xs text-slate-500">Respond to tuition requests</div>
               </div>
               <FaArrowRight className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+            </Link>
+
+            <Link
+              to="/queries"
+              className="p-4 rounded-2xl border border-slate-200/80 hover:border-sky-400 hover:bg-sky-50/40 flex items-center justify-between group transition-all"
+            >
+              <div>
+                <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span>Help & Doubts</span>
+                  {unreadCounts?.queries > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                      {unreadCounts.queries}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500">Ask admin doubts directly</div>
+              </div>
+              <FaArrowRight className="text-slate-400 group-hover:text-sky-600 transition-colors" />
             </Link>
 
             <Link

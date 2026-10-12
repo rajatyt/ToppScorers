@@ -7,10 +7,12 @@ import {
   FaUserGraduate, FaUserFriends, FaCog, FaSignOutAlt
 } from 'react-icons/fa';
 import { FiUser, FiSliders } from 'react-icons/fi';
+import { NotificationContext } from '../context/NotificationContext';
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
   const { user, profile, isAuthenticated, logout } = useContext(AuthContext);
+  const { unreadCounts } = useContext(NotificationContext);
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
@@ -102,9 +104,26 @@ const Navbar = () => {
 
                 <Link
                   to="/connections"
-                  className={`text-[15px] font-bold transition-colors ${location.pathname === '/connections' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+                  className={`text-[15px] font-bold transition-colors inline-flex items-center space-x-1.5 ${location.pathname === '/connections' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
                 >
-                  {t('nav.connections')}
+                  <span>{t('nav.connections')}</span>
+                  {unreadCounts?.total > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                      {unreadCounts.total}
+                    </span>
+                  )}
+                </Link>
+
+                <Link
+                  to="/queries"
+                  className={`text-[15px] font-bold transition-colors inline-flex items-center space-x-1.5 ${location.pathname === '/queries' || location.pathname === '/support' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+                >
+                  <span>Help & Doubts</span>
+                  {unreadCounts?.queries > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                      {unreadCounts.queries}
+                    </span>
+                  )}
                 </Link>
               </>
             )}
@@ -193,6 +212,15 @@ const Navbar = () => {
 
                   <Link to="/connections" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold">
                     {t('nav.connections')}
+                  </Link>
+
+                  <Link to="/queries" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold flex items-center justify-between">
+                    <span>Help & Doubts</span>
+                    {unreadCounts?.queries > 0 && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full">
+                        {unreadCounts.queries}
+                      </span>
+                    )}
                   </Link>
 
                   <Link to="/settings" className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold">
@@ -286,7 +314,24 @@ const Navbar = () => {
                     <Link to="/verification" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50">{t('nav.verification')}</Link>
                   </>
                 )}
-                <Link to="/connections" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50">{t('nav.connections')}</Link>
+                <Link to="/connections" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50 flex items-center justify-between">
+                  <span>{t('nav.connections')}</span>
+                  {unreadCounts?.total > 0 && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                      {unreadCounts.total}
+                    </span>
+                  )}
+                </Link>
+
+                <Link to="/queries" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50 flex items-center justify-between">
+                  <span>Help & Doubts</span>
+                  {unreadCounts?.queries > 0 && (
+                    <span className="px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                      {unreadCounts.queries}
+                    </span>
+                  )}
+                </Link>
+
                 <Link to="/settings" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50">{t('nav.settings')}</Link>
                 {isAdmin && (
                   <Link to="/admin" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-lg text-amber-700 hover:bg-amber-50">{t('nav.admin')}</Link>

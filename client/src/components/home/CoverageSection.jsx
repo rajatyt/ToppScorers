@@ -11,6 +11,7 @@ import {
   HiOutlineCalculator, 
   HiOutlineBadgeCheck 
 } from 'react-icons/hi';
+import SectionDivider from '../common/SectionDivider';
 
 const CoverageSection = () => {
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ const CoverageSection = () => {
   };
 
   return (
-    <section className="py-20 bg-slate-50 text-slate-900">
+    <section className="relative pt-16 pb-28 sm:pb-36 bg-slate-50 text-slate-900 overflow-hidden">
       <div className="container mx-auto px-6 md:px-12 lg:px-24">
         <div className="text-center mb-16">
           <p className="text-amber-600 font-bold tracking-wider uppercase text-sm mb-2">{t('coverage.eyebrow')}</p>
@@ -70,6 +71,14 @@ const CoverageSection = () => {
           ))}
         </motion.div>
       </div>
+
+      {/* Modern Wave Section Divider Transition into WhyTeacherHunt */}
+      <SectionDivider 
+        toColor="text-slate-900" 
+        accentColor="rgba(245, 158, 11, 0.2)" 
+        flip={true}
+        className="absolute bottom-0 left-0 right-0 z-10" 
+      />
     </section>
   );
 };

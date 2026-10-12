@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import {
@@ -8,8 +8,10 @@ import {
   FaTimes, FaSave, FaExclamationTriangle, FaUserFriends, FaWhatsapp
 } from 'react-icons/fa';
 import { FiChevronRight, FiEye } from 'react-icons/fi';
+import { NotificationContext } from '../../context/NotificationContext';
 
 const VerificationQueue = () => {
+  const { markAdminSectionViewed } = useContext(NotificationContext);
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState([]);
   const [counts, setCounts] = useState({ pending: 0, verified: 0, rejected: 0, unverified: 0, total: 0 });
@@ -26,6 +28,7 @@ const VerificationQueue = () => {
 
   const fetchQueue = async () => {
     setLoading(true);
+    markAdminSectionViewed('verifications');
     try {
       const res = await api.get('/admin/verifications', {
         params: { status: statusFilter, search }

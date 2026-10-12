@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import {
   FaShieldAlt, FaFlag, FaBan, FaEye, FaCheckCircle,
   FaTimesCircle, FaSlidersH, FaUserCheck
 } from 'react-icons/fa';
+import { NotificationContext } from '../../context/NotificationContext';
 
 const ModerationManager = () => {
+  const { markAdminSectionViewed } = useContext(NotificationContext);
   const [activeTab, setActiveTab] = useState('settings'); // 'settings' | 'reports' | 'logs' | 'blocks'
   const [guestDirectoryVisible, setGuestDirectoryVisible] = useState(true);
   const [reports, setReports] = useState([]);
@@ -22,6 +24,7 @@ const ModerationManager = () => {
         const res = await api.get('/admin/settings');
         setGuestDirectoryVisible(res.data.guestDirectoryVisible ?? true);
       } else if (activeTab === 'reports') {
+        markAdminSectionViewed('reports');
         const res = await api.get('/admin/reports');
         setReports(res.data || []);
       } else if (activeTab === 'logs') {

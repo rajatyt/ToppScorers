@@ -23,10 +23,13 @@ import AdminRoutes from './pages/admin/AdminRoutes';
 import AdminLogin from './pages/admin/AdminLogin';
 import TeacherVerification from './pages/TeacherVerification';
 import TeacherProfileEdit from './pages/TeacherProfileEdit';
+import SupportQueries from './pages/SupportQueries';
 import TeacherVerificationPromptModal from './components/TeacherVerificationPromptModal';
+import WelcomeRoleModal from './components/WelcomeRoleModal';
 
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import { AdminAuthProvider } from './context/AdminAuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +50,7 @@ function AppContent() {
     <div className="flex flex-col min-h-screen">
       {!isAdminRoute && <Navbar />}
       {!isAdminRoute && <TeacherVerificationPromptModal />}
+      {!isAdminRoute && <WelcomeRoleModal />}
       <main className="flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -93,6 +97,18 @@ function AppContent() {
             </ProtectedRoute>
           } />
 
+          <Route path="/queries" element={
+            <ProtectedRoute>
+              <SupportQueries />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/support" element={
+            <ProtectedRoute>
+              <SupportQueries />
+            </ProtectedRoute>
+          } />
+
           {/* Legal Pages */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
@@ -133,9 +149,11 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AdminAuthProvider>
-            <Router>
-              <AppContent />
-            </Router>
+            <NotificationProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </NotificationProvider>
           </AdminAuthProvider>
         </AuthProvider>
       </QueryClientProvider>

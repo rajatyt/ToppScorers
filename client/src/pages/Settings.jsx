@@ -8,6 +8,7 @@ import {
   FaShieldAlt, FaMapMarkerAlt, FaUserEdit, FaTrashAlt,
   FaCheck, FaExclamationTriangle, FaLock, FaPhoneAlt, FaEyeSlash
 } from 'react-icons/fa';
+import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
 const Settings = () => {
   const { t } = useTranslation();
@@ -349,28 +350,39 @@ const Settings = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Area / Locality
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center">
+                    <FaMapMarkerAlt className="text-amber-500 mr-1" />
+                    District
                   </label>
-                  <input
-                    type="text"
-                    value={profileData.area}
-                    onChange={(e) => setProfileData({ ...profileData, area: e.target.value })}
-                    placeholder="e.g. Rohini Sector 9"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-                  />
+                  <select
+                    value={profileData.city}
+                    onChange={(e) => setProfileData({ ...profileData, city: e.target.value, area: '' })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 font-medium"
+                  >
+                    <option value="">Select District</option>
+                    {DISTRICTS.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    City
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center">
+                    <FaMapMarkerAlt className="text-amber-500 mr-1" />
+                    Area / Locality
                   </label>
-                  <input
-                    type="text"
-                    value={profileData.city}
-                    onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
-                    placeholder="e.g. Delhi"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-                  />
+                  <select
+                    value={profileData.area}
+                    onChange={(e) => setProfileData({ ...profileData, area: e.target.value })}
+                    disabled={!profileData.city}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 font-medium disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {profileData.city ? `Select Area in ${profileData.city}` : 'Select District first'}
+                    </option>
+                    {profileData.city && DISTRICT_AREAS[profileData.city]?.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">

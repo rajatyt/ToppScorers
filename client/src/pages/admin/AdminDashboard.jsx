@@ -6,6 +6,7 @@ import {
   FiArrowUpRight, FiPlusCircle, FiLayout, FiHelpCircle, 
   FiCheckCircle, FiServer, FiSmartphone, FiMonitor 
 } from 'react-icons/fi';
+import { FaHandshake } from 'react-icons/fa';
 import axios from '../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -13,6 +14,7 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ totalUsers: 0, totalTeachers: 0, totalStudents: 0, activeSessions: 0 });
+  const [connMetrics, setConnMetrics] = useState({ totalRequests: 0, newLeads: 0, totalCommissionReceived: 0 });
   const [recentUsers, setRecentUsers] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,9 +24,10 @@ const AdminDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [usersRes, sessionsRes] = await Promise.all([
+        const [usersRes, sessionsRes, connsRes] = await Promise.all([
           axios.get('/admin/users'),
-          axios.get('/admin/sessions')
+          axios.get('/admin/sessions'),
+          axios.get('/admin/connections').catch(() => ({ data: { metrics: {} } }))
         ]);
         
         const users = usersRes.data || [];
@@ -39,6 +42,14 @@ const AdminDashboard = () => {
           totalStudents: students,
           activeSessions: activeSessions.length
         });
+
+        if (connsRes.data?.metrics) {
+          setConnMetrics({
+            totalRequests: connsRes.data.metrics.totalRequests || 0,
+            newLeads: connsRes.data.metrics.newLeads || 0,
+            totalCommissionReceived: connsRes.data.metrics.totalCommissionReceived || 0
+          });
+        }
 
         const sortedUsers = [...users].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         setRecentUsers(sortedUsers);
@@ -157,6 +168,18 @@ const AdminDashboard = () => {
 
           {/* Quick Actions Grid */}
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <button 
+              onClick={() => navigate('/admin/connections')}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02]"
+            >
+              <FaHandshake size={16} />
+              <span>Connection Leads</span>
+              {connMetrics.newLeads > 0 && (
+                <span className="px-1.5 py-0.5 bg-slate-950 text-emerald-300 rounded-full text-[10px] font-black animate-pulse">
+                  {connMetrics.newLeads} New
+                </span>
+              )}
+            </button>
             <button 
               onClick={() => navigate('/admin/profiles')}
               className="flex items-center space-x-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"

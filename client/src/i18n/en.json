@@ -455,5 +455,25 @@
     "saving": "Saving Changes...",
     "cancel": "Cancel",
     "saveSuccess": "Profile and qualifications saved successfully!"
+  },
+  "welcomeModal": {
+    "badge": "Welcome to ToppScorers",
+    "title": "India's Premier Educator & Student Network",
+    "subtitle": "Whether you are aiming for academic excellence or ready to inspire learners, select your path below to begin.",
+    "forStudentsBadge": "Students & Parents",
+    "findTutorTitle": "Find My Tutor",
+    "findTutorDesc": "Connect with verified top-tier educators for 1-on-1 home tuitions, online batches, and board or competitive prep.",
+    "bulletStudent1": "Background & document verified teachers",
+    "bulletStudent2": "Zero platform commission & direct coordination",
+    "bulletStudent3": "CBSE, ICSE, State, JEE, NEET & Foundation",
+    "findTutorBtn": "Find My Tutor",
+    "forTeachersBadge": "Teachers & Mentors",
+    "startTeachingTitle": "Start Teaching",
+    "startTeachingDesc": "Receive direct student tuition inquiries, set your own flexible hours, and grow your career with verified badges.",
+    "bulletTeacher1": "Keep 100% of your tuition fees (0% commission)",
+    "bulletTeacher2": "Verified Educator badge & trust ranking",
+    "bulletTeacher3": "Direct physical scheduling coordination",
+    "startTeachingBtn": "Start Teaching",
+    "skipForNow": "Skip for now and explore as guest"
   }
 }

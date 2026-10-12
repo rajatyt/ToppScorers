@@ -10,9 +10,9 @@ import {
   FaCheckCircle, FaStar, FaMapMarkerAlt, FaBookmark, FaRegBookmark,
   FaChalkboardTeacher, FaUserGraduate, FaRupeeSign, FaShieldAlt,
   FaPhoneAlt, FaEnvelope, FaVideo, FaAward, FaCalendarAlt,
-  FaClock, FaCompass, FaFlag, FaBan, FaArrowLeft
+  FaClock, FaCompass, FaFlag, FaBan, FaArrowLeft, FaBookOpen
 } from 'react-icons/fa';
-import { FiLock, FiCheck, FiArrowRight } from 'react-icons/fi';
+import { FiLock, FiCheck, FiArrowRight, FiCopy } from 'react-icons/fi';
 
 const ProfileDetail = () => {
   const { id } = useParams();
@@ -31,6 +31,7 @@ const ProfileDetail = () => {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [copiedJobId, setCopiedJobId] = useState(false);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -249,6 +250,27 @@ const ProfileDetail = () => {
                   <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">
                     {name}
                   </h1>
+                  {profile.jobId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(profile.jobId);
+                        setCopiedJobId(true);
+                        toast.success(`Copied Job ID: ${profile.jobId}`);
+                        setTimeout(() => setCopiedJobId(false), 2000);
+                      }}
+                      className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-100/70 text-slate-800 hover:text-amber-950 border border-slate-200 hover:border-amber-300 font-mono text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                      title="Click to copy Job ID"
+                    >
+                      <span className="text-slate-400 font-sans text-[10px] font-bold uppercase tracking-wider">JOB ID:</span>
+                      <span>{profile.jobId}</span>
+                      {copiedJobId ? (
+                        <FiCheck className="text-emerald-600 text-xs ml-0.5" />
+                      ) : (
+                        <FiCopy className="text-slate-400 text-xs ml-0.5" />
+                      )}
+                    </button>
+                  )}
                   {profile.isVerified && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                       Verified
@@ -320,6 +342,116 @@ const ProfileDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Details (2 cols) */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Requirement Details */}
+            {isTeacherRoute && (
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xs relative overflow-hidden">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold">
+                      <FaBookOpen size={16} />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                        Requirement Details
+                      </h2>
+                      <p className="text-[11px] text-slate-500">
+                        Tutoring specifications, schedule, board and matching criteria
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                    {profile.teachingMode ? profile.teachingMode.toUpperCase() : 'HOME'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
+                  {/* Subjects */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Subjects
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1 break-words">
+                      {subjects.length > 0 ? subjects.join(', ') : 'All Subjects'}
+                    </span>
+                  </div>
+
+                  {/* Board */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Board
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">
+                      {profile.board || 'ICSE'}
+                    </span>
+                  </div>
+
+                  {/* Tuition Mode */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Tuition Mode
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1 uppercase">
+                      {profile.teachingMode ? profile.teachingMode.toUpperCase() : 'HOME'}
+                    </span>
+                  </div>
+
+                  {/* Budget / Rate */}
+                  <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                      Budget / Rate
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-amber-950 mt-1 flex items-center">
+                      <FaRupeeSign className="text-xs mr-0.5 text-amber-600" />
+                      {profile.fee?.amount ? (typeof profile.fee.amount === 'number' ? profile.fee.amount.toLocaleString('en-IN') : profile.fee.amount) : '3000'}
+                      <span className="text-[10px] sm:text-[11px] font-medium text-amber-700 ml-1">
+                        /{profile.fee?.period || 'mo'}
+                      </span>
+                    </span>
+                  </div>
+
+                  {/* Preferred Time */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Preferred Time
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">
+                      {profile.preferredTime || profile.preferredTiming || 'After 4'}
+                    </span>
+                  </div>
+
+                  {/* Days per Week */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Days per Week
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">
+                      {profile.daysPerWeek || '6 days a week'}
+                    </span>
+                  </div>
+
+                  {/* Tutor Gender */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Tutor Gender
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">
+                      {profile.tutorGender || 'Any'}
+                    </span>
+                  </div>
+
+                  {/* Student Gender */}
+                  <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Student Gender
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">
+                      {profile.studentGender || 'Female'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Bio or Goals */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs">
               <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-3">

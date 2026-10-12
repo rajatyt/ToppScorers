@@ -15,6 +15,7 @@ import {
   FaAtom
 } from 'react-icons/fa';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
+import SectionDivider from '../common/SectionDivider';
 
 const HeroSection = () => {
   const { t } = useTranslation();
@@ -33,7 +34,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative w-full text-white overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-32 bg-slate-950">
+    <section className="relative w-full text-white overflow-hidden pt-16 pb-28 sm:pt-20 sm:pb-36 lg:pb-40 bg-slate-950">
       {/* Layer 1: High-res authentic Educator Hub / Modern Learning Academy Atmospheric Backdrop */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none transform scale-105 opacity-25"
@@ -439,6 +440,13 @@ const HeroSection = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Modern Wave Section Divider Transition into CoverageSection */}
+      <SectionDivider 
+        toColor="text-slate-50" 
+        accentColor="rgba(245, 158, 11, 0.22)" 
+        className="absolute bottom-0 left-0 right-0 z-10" 
+      />
     </section>
   );
 };

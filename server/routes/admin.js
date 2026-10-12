@@ -11,6 +11,8 @@ import SavedProfile from '../models/SavedProfile.js';
 import SystemSetting from '../models/SystemSetting.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
+import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
+import Query from '../models/Query.js';
 
 const router = express.Router();
 
@@ -349,8 +351,10 @@ router.post('/teachers', async (req, res) => {
       passwordHash: password || 'tempPass123!',
       role: 'teacher'
     });
+    const jobId = await generateTeacherJobId();
     const profile = await TeacherProfile.create({
       userId: user._id,
+      jobId,
       approvalStatus: 'approved',
       verificationPhone: validatedPhone,
       ...profileData
@@ -386,8 +390,10 @@ router.post('/students', async (req, res) => {
       passwordHash: password || 'tempPass123!',
       role: 'student'
     });
+    const jobId = await generateStudentJobId();
     const profile = await StudentProfile.create({
       userId: user._id,
+      jobId,
       approvalStatus: 'approved',
       ...profileData
     });
@@ -670,6 +676,278 @@ router.patch('/verifications/:id/notes', async (req, res) => {
 
     if (!profile) return res.status(404).json({ message: 'Teacher profile not found' });
     res.json({ message: 'Verification notes updated', profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==========================================
+// CONNECTION LEADS & MATCHMAKING ENDPOINTS
+// ==========================================
+
+// GET /api/admin/connections - Fetch all connection requests for manual matchmaking
+router.get('/connections', async (req, res) => {
+  try {
+    const { leadStatus, status, commissionStatus, search, district } = req.query;
+
+    let query = {};
+    if (leadStatus && leadStatus !== 'all') {
+      query.adminLeadStatus = leadStatus;
+    }
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (commissionStatus && commissionStatus !== 'all') {
+      query.commissionStatus = commissionStatus;
+    }
+
+    const requests = await ConnectionRequest.find(query)
+      .populate('fromUserId', 'name email phone avatar role isActive dateOfBirth')
+      .populate('toUserId', 'name email phone avatar role isActive dateOfBirth')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Enrich both parties with full profile details
+    let enriched = await Promise.all(requests.map(async (reqItem) => {
+      let fromProfile = null;
+      let toProfile = null;
+
+      if (reqItem.fromUserId) {
+        if (reqItem.fromUserId.role === 'teacher') {
+          fromProfile = await TeacherProfile.findOne({ userId: reqItem.fromUserId._id })
+            .select('subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
+            .lean();
+        } else if (reqItem.fromUserId.role === 'student') {
+          fromProfile = await StudentProfile.findOne({ userId: reqItem.fromUserId._id })
+            .select('subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
+            .lean();
+        }
+      }
+
+      if (reqItem.toUserId) {
+        if (reqItem.toUserId.role === 'teacher') {
+          toProfile = await TeacherProfile.findOne({ userId: reqItem.toUserId._id })
+            .select('subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
+            .lean();
+        } else if (reqItem.toUserId.role === 'student') {
+          toProfile = await StudentProfile.findOne({ userId: reqItem.toUserId._id })
+            .select('subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
+            .lean();
+        }
+      }
+
+      return {
+        ...reqItem,
+        fromProfile,
+        toProfile
+      };
+    }));
+
+    // Filter by district if specified
+    if (district && district !== 'all') {
+      enriched = enriched.filter(item => {
+        const fromDistrict = item.fromProfile?.location?.city || '';
+        const toDistrict = item.toProfile?.location?.city || '';
+        return (
+          fromDistrict.toLowerCase() === district.toLowerCase() ||
+          toDistrict.toLowerCase() === district.toLowerCase()
+        );
+      });
+    }
+
+    // Filter by search query if specified
+    if (search && search.trim()) {
+      const reg = new RegExp(search.trim(), 'i');
+      enriched = enriched.filter(item => {
+        const fromName = item.fromUserId?.name || '';
+        const fromEmail = item.fromUserId?.email || '';
+        const fromPhone = item.fromUserId?.phone || item.fromProfile?.verificationPhone || '';
+        const toName = item.toUserId?.name || '';
+        const toEmail = item.toUserId?.email || '';
+        const toPhone = item.toUserId?.phone || item.toProfile?.verificationPhone || '';
+        const notes = item.adminNotes || '';
+        const message = item.message || '';
+        const fromArea = item.fromProfile?.area || '';
+        const toArea = item.toProfile?.area || '';
+
+        return (
+          reg.test(fromName) ||
+          reg.test(fromEmail) ||
+          reg.test(fromPhone) ||
+          reg.test(toName) ||
+          reg.test(toEmail) ||
+          reg.test(toPhone) ||
+          reg.test(notes) ||
+          reg.test(message) ||
+          reg.test(fromArea) ||
+          reg.test(toArea)
+        );
+      });
+    }
+
+    // Aggregate statistics across all requests
+    const allRequests = await ConnectionRequest.find().lean();
+    const metrics = {
+      totalRequests: allRequests.length,
+      newLeads: allRequests.filter(r => (r.adminLeadStatus || 'new') === 'new').length,
+      inProgress: allRequests.filter(r => ['contacted_sender', 'contacted_target', 'both_contacted'].includes(r.adminLeadStatus)).length,
+      dealsFinalized: allRequests.filter(r => ['deal_finalized', 'commission_received'].includes(r.adminLeadStatus)).length,
+      totalCommissionExpected: allRequests.reduce((sum, r) => sum + (Number(r.commissionExpected) || 0), 0),
+      totalCommissionReceived: allRequests.reduce((sum, r) => sum + (Number(r.commissionReceived) || 0), 0)
+    };
+
+    res.json({
+      metrics,
+      connections: enriched
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/connections/:id - Update admin matchmaking & commission status
+router.patch('/connections/:id', async (req, res) => {
+  try {
+    const {
+      adminLeadStatus,
+      tuitionFee,
+      commissionExpected,
+      commissionReceived,
+      commissionStatus,
+      adminNotes,
+      status
+    } = req.body;
+
+    const request = await ConnectionRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ message: 'Connection request not found' });
+    }
+
+    if (adminLeadStatus !== undefined) {
+      request.adminLeadStatus = adminLeadStatus;
+      if (['contacted_sender', 'contacted_target', 'both_contacted'].includes(adminLeadStatus)) {
+        request.lastContactedAt = new Date();
+      }
+      if (['deal_finalized', 'commission_received'].includes(adminLeadStatus)) {
+        if (!request.dealFinalizedAt) request.dealFinalizedAt = new Date();
+      }
+    }
+
+    if (tuitionFee !== undefined) request.tuitionFee = Number(tuitionFee) || 0;
+    if (commissionExpected !== undefined) request.commissionExpected = Number(commissionExpected) || 0;
+    if (commissionReceived !== undefined) request.commissionReceived = Number(commissionReceived) || 0;
+    if (commissionStatus !== undefined) request.commissionStatus = commissionStatus;
+    if (adminNotes !== undefined) request.adminNotes = adminNotes;
+    if (status !== undefined) request.status = status;
+
+    await request.save();
+
+    const populated = await ConnectionRequest.findById(request._id)
+      .populate('fromUserId', 'name email phone avatar role isActive')
+      .populate('toUserId', 'name email phone avatar role isActive')
+      .lean();
+
+    let fromProfile = null;
+    let toProfile = null;
+    if (populated.fromUserId) {
+      if (populated.fromUserId.role === 'teacher') {
+        fromProfile = await TeacherProfile.findOne({ userId: populated.fromUserId._id }).lean();
+      } else if (populated.fromUserId.role === 'student') {
+        fromProfile = await StudentProfile.findOne({ userId: populated.fromUserId._id }).lean();
+      }
+    }
+    if (populated.toUserId) {
+      if (populated.toUserId.role === 'teacher') {
+        toProfile = await TeacherProfile.findOne({ userId: populated.toUserId._id }).lean();
+      } else if (populated.toUserId.role === 'student') {
+        toProfile = await StudentProfile.findOne({ userId: populated.toUserId._id }).lean();
+      }
+    }
+
+    res.json({
+      message: 'Connection lead updated successfully',
+      connection: {
+        ...populated,
+        fromProfile,
+        toProfile
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/admin/connections/:id - Delete connection record
+router.delete('/connections/:id', async (req, res) => {
+  try {
+    const deleted = await ConnectionRequest.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Connection request not found' });
+    }
+    res.json({ message: 'Connection request removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==========================================
+// ADMIN NOTIFICATION BADGE COUNTS
+// ==========================================
+
+// GET /api/admin/unread-counts - Get unviewed counts for Connections, Verifications, Reports, and Queries
+router.get('/unread-counts', async (req, res) => {
+  try {
+    const [connectionsCount, verificationsCount, reportsCount, queriesCount] = await Promise.all([
+      ConnectionRequest.countDocuments({ viewedByAdmin: false }),
+      TeacherProfile.countDocuments({
+        viewedByAdmin: false,
+        $or: [
+          { verificationStatus: 'pending' },
+          { approvalStatus: 'pending', isVerified: false },
+          { verificationStatus: 'unverified', isVerified: false }
+        ]
+      }),
+      Report.countDocuments({ viewedByAdmin: false, status: 'pending' }),
+      Query.countDocuments({ adminViewed: false })
+    ]);
+
+    const total = connectionsCount + verificationsCount + reportsCount + queriesCount;
+
+    res.json({
+      connections: connectionsCount,
+      verifications: verificationsCount,
+      reports: reportsCount,
+      queries: queriesCount,
+      total
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/admin/mark-viewed - Mark an admin section viewed (clears the badge instantly)
+router.post('/mark-viewed', async (req, res) => {
+  try {
+    const { section } = req.body; // 'connections' | 'verifications' | 'reports' | 'queries' | 'all'
+
+    if (section === 'connections') {
+      await ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
+    } else if (section === 'verifications') {
+      await TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
+    } else if (section === 'reports') {
+      await Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
+    } else if (section === 'queries') {
+      await Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } });
+    } else if (section === 'all') {
+      await Promise.all([
+        ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
+        TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
+        Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
+        Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } })
+      ]);
+    }
+
+    res.json({ message: `Admin section ${section || 'all'} marked as viewed` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -509,14 +509,16 @@ const ProfileManager = () => {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">City</label>
-              <input 
-                type="text" 
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">District / City</label>
+              <select 
                 value={formData.location.city} 
                 onChange={e => setFormData({...formData, location: {...formData.location, city: e.target.value}})} 
                 className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                placeholder="Kota / Delhi / Bengaluru"
-              />
+              >
+                <option value="">Select District</option>
+                <option value="Prayagraj">Prayagraj</option>
+                <option value="Fatehpur">Fatehpur</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">State</label>

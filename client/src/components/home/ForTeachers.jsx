@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HiCheckCircle, HiArrowRight } from 'react-icons/hi';
+import SectionDivider from '../common/SectionDivider';
 
 const ForTeachers = () => {
   const { t } = useTranslation();
@@ -15,7 +16,7 @@ const ForTeachers = () => {
   ];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="relative pt-20 pb-28 sm:pb-36 bg-white overflow-hidden">
       <div className="container mx-auto px-6 md:px-12 lg:px-24 flex flex-col md:flex-row items-center gap-12">
         <motion.div 
           className="md:w-1/2"
@@ -77,6 +78,14 @@ const ForTeachers = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Modern Wave Section Divider Transition into ForStudents */}
+      <SectionDivider 
+        toColor="text-slate-50" 
+        accentColor="rgba(245, 158, 11, 0.15)" 
+        flip={true}
+        className="absolute bottom-0 left-0 right-0 z-10" 
+      />
     </section>
   );
 };

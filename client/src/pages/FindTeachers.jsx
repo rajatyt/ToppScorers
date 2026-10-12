@@ -13,6 +13,7 @@ import {
   FaMapMarkerAlt, FaTimes, FaRupeeSign, FaShieldAlt
 } from 'react-icons/fa';
 import { FiLock, FiArrowRight, FiSliders } from 'react-icons/fi';
+import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
 const fetchTeachers = async (params) => {
   const { data } = await api.get('/teachers', { params });
@@ -38,6 +39,7 @@ const FindTeachers = () => {
   const [subject, setSubject] = useState(searchParams.get('subject') || '');
   const [exam, setExam] = useState(searchParams.get('exam') || '');
   const [city, setCity] = useState(searchParams.get('city') || '');
+  const [area, setArea] = useState(searchParams.get('area') || '');
   const [teachingMode, setTeachingMode] = useState(searchParams.get('mode') || 'all');
   const [experienceMin, setExperienceMin] = useState(searchParams.get('exp') || '');
   const [feeMax, setFeeMax] = useState(searchParams.get('feeMax') || '');
@@ -67,6 +69,7 @@ const FindTeachers = () => {
     subject: subject || undefined,
     exam: exam || undefined,
     city: city || undefined,
+    area: area || undefined,
     teachingMode: teachingMode !== 'all' ? teachingMode : undefined,
     experienceMin: experienceMin || undefined,
     feeMax: feeMax || undefined,
@@ -114,6 +117,7 @@ const FindTeachers = () => {
     setSubject('');
     setExam('');
     setCity('');
+    setArea('');
     setTeachingMode('all');
     setExperienceMin('');
     setFeeMax('');
@@ -153,7 +157,7 @@ const FindTeachers = () => {
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  placeholder={t('common.searchTeachersPlaceholder', 'Search by subject, exam (e.g. Physics, JEE, Kota)...')}
+                  placeholder={t('common.searchTeachersPlaceholder', 'Search by Job ID (e.g. JOB-T1001), subject, teacher name, or area...')}
                   className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-slate-400 text-slate-900"
                 />
               </div>
@@ -251,18 +255,69 @@ const FindTeachers = () => {
                   </select>
                 </div>
 
-                {/* City Filter */}
+                {/* District Filter (Prayagraj & Fatehpur only) */}
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    City / Location
-                  </label>
-                  <input
-                    type="text"
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1.5 text-xs" />
+                      District
+                    </label>
+                    {city && (
+                      <button
+                        type="button"
+                        onClick={() => { setCity(''); setArea(''); setPage(1); }}
+                        className="text-[10px] text-amber-600 hover:underline font-semibold"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <select
                     value={city}
-                    onChange={(e) => { setCity(e.target.value); setPage(1); }}
-                    placeholder="e.g. Delhi, Kota, Pune..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-800"
-                  />
+                    onChange={(e) => {
+                      setCity(e.target.value);
+                      setArea(''); // reset area on district change
+                      setPage(1);
+                    }}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-800 font-medium"
+                  >
+                    <option value="">All Districts (Fatehpur)</option>
+                    {DISTRICTS.map((dist) => (
+                      <option key={dist} value={dist}>{dist}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Cascading Area Filter */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                      <FaMapMarkerAlt className="text-amber-500 mr-1.5 text-xs" />
+                      Area / Locality
+                    </label>
+                    {area && (
+                      <button
+                        type="button"
+                        onClick={() => { setArea(''); setPage(1); }}
+                        className="text-[10px] text-amber-600 hover:underline font-semibold"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    value={area}
+                    onChange={(e) => { setArea(e.target.value); setPage(1); }}
+                    disabled={!city}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-800 font-medium disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {city ? `All Areas in ${city}` : 'Select District first'}
+                    </option>
+                    {city && DISTRICT_AREAS[city]?.map((areaName) => (
+                      <option key={areaName} value={areaName}>{areaName}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Teaching Mode */}

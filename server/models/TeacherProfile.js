@@ -3,6 +3,7 @@ import './User.js';
 
 const teacherProfileSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  jobId: { type: String, unique: true, sparse: true, index: true },
   subjects: [{ type: String }],
   exams: [{ type: String }],
   qualifications: [{ type: String }],
@@ -34,11 +35,18 @@ const teacherProfileSchema = new mongoose.Schema({
     lng: { type: Number, default: null }
   },
   fee: {
-    amount: { type: Number, default: 1500 },
+    amount: { type: Number, default: 3000 },
     period: { type: String, enum: ['hourly', 'monthly', 'per_session'], default: 'monthly' }
   },
-  teachingMode: { type: String, enum: ['home', 'online', 'institute', 'all'], default: 'all' },
+  teachingMode: { type: String, default: 'home' },
   availability: { type: String, default: 'Flexible (Morning / Evening)' },
+
+  // Requirement Details
+  board: { type: String, default: 'ICSE' },
+  preferredTime: { type: String, default: 'After 4' },
+  daysPerWeek: { type: String, default: '6 days a week' },
+  tutorGender: { type: String, default: 'Any' },
+  studentGender: { type: String, default: 'Female' },
   rating: { type: Number, default: 4.8 },
   approvalStatus: { 
     type: String, 
@@ -55,6 +63,7 @@ const teacherProfileSchema = new mongoose.Schema({
   adminVerificationNotes: { type: String, default: '' },
   verificationSubmittedAt: { type: Date, default: null },
   verifiedAt: { type: Date, default: null },
+  viewedByAdmin: { type: Boolean, default: false },
 
   // Verification & Physical Tuition Coordination Contact
   verificationPhone: { type: String, default: '' },
@@ -98,9 +107,28 @@ const teacherProfileSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+teacherProfileSchema.pre('save', async function (next) {
+  if (!this.jobId) {
+    try {
+      const count = await this.constructor.countDocuments({ jobId: { $exists: true, $ne: '' } });
+      let nextNum = 1001 + count;
+      let candidate = `JOB-T${nextNum}`;
+      while (await this.constructor.findOne({ jobId: candidate })) {
+        nextNum++;
+        candidate = `JOB-T${nextNum}`;
+      }
+      this.jobId = candidate;
+    } catch (err) {
+      console.error('Error generating teacher jobId in pre-save:', err);
+    }
+  }
+  next();
+});
+
 teacherProfileSchema.index({ 'location.city': 1, approvalStatus: 1 });
 teacherProfileSchema.index({ subjects: 1 });
 teacherProfileSchema.index({ exams: 1 });
 
 const TeacherProfile = mongoose.model('TeacherProfile', teacherProfileSchema);
 export default TeacherProfile;
+

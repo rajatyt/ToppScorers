@@ -19,6 +19,7 @@ import savedRoutes from './routes/saved.js';
 import adminRoutes from './routes/admin.js';
 import widgetRoutes from './routes/widgets.js';
 import faqRoutes from './routes/faqs.js';
+import queryRoutes from './routes/queries.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +66,8 @@ app.get(['/', '/api'], (req, res) => {
       saved: '/api/saved',
       admin: '/api/admin',
       widgets: '/api/widgets',
-      faqs: '/api/faqs'
+      faqs: '/api/faqs',
+      queries: '/api/queries'
     }
   });
 });
@@ -91,6 +93,7 @@ app.use('/api/saved', savedRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/widgets', widgetRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api/queries', queryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

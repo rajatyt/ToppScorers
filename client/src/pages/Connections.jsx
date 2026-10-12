@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
+import { NotificationContext } from '../context/NotificationContext';
 import { toast } from 'react-hot-toast';
 import {
   FaUserFriends, FaInbox, FaPaperPlane, FaCheckCircle,
@@ -13,6 +14,7 @@ import { FiClock, FiCheck, FiX, FiArrowRight } from 'react-icons/fi';
 const Connections = () => {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useContext(AuthContext);
+  const { unreadCounts, markSectionViewed } = useContext(NotificationContext);
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('incoming'); // 'incoming' | 'outgoing' | 'accepted'
@@ -41,6 +43,8 @@ const Connections = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchRequests();
+      // WhatsApp / Instagram style: viewing the section instantly clears its notification count!
+      markSectionViewed(activeTab);
     }
   }, [activeTab, isAuthenticated]);
 
@@ -79,8 +83,11 @@ const Connections = () => {
         {/* Tabs */}
         <div className="flex p-1 bg-white border border-slate-200/80 rounded-2xl mb-6 shadow-xs max-w-md">
           <button
-            onClick={() => setActiveTab('incoming')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
+            onClick={() => {
+              setActiveTab('incoming');
+              markSectionViewed('incoming');
+            }}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all relative ${
               activeTab === 'incoming'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -88,11 +95,19 @@ const Connections = () => {
           >
             <FaInbox size={13} />
             <span>Incoming</span>
+            {unreadCounts?.incoming > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                {unreadCounts.incoming}
+              </span>
+            )}
           </button>
 
           <button
-            onClick={() => setActiveTab('outgoing')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
+            onClick={() => {
+              setActiveTab('outgoing');
+              markSectionViewed('outgoing');
+            }}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all relative ${
               activeTab === 'outgoing'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -100,11 +115,19 @@ const Connections = () => {
           >
             <FaPaperPlane size={12} />
             <span>Sent</span>
+            {unreadCounts?.sent > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse shadow-xs">
+                {unreadCounts.sent}
+              </span>
+            )}
           </button>
 
           <button
-            onClick={() => setActiveTab('accepted')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
+            onClick={() => {
+              setActiveTab('accepted');
+              markSectionViewed('accepted');
+            }}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all relative ${
               activeTab === 'accepted'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -112,6 +135,11 @@ const Connections = () => {
           >
             <FaCheckCircle size={13} />
             <span>Connected</span>
+            {unreadCounts?.accepted > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 text-[10px] font-black bg-emerald-500 text-white rounded-full animate-pulse shadow-xs">
+                {unreadCounts.accepted}
+              </span>
+            )}
           </button>
         </div>
 

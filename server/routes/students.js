@@ -92,10 +92,15 @@ router.get('/', directoryLimiter, optionalAuth, async (req, res) => {
       }
     }
 
-    // Search query
+    // Search query across jobId, student name, subjectsNeeded, classOrExam, goals, city, area
     if (search && search.trim()) {
       const reg = new RegExp(search.trim(), 'i');
+      const matchingUsers = await User.find({ name: reg }).select('_id');
+      const matchingUserIds = matchingUsers.map(u => u._id);
+
       query.$or = [
+        { jobId: reg },
+        ...(matchingUserIds.length > 0 ? [{ userId: { $in: matchingUserIds } }] : []),
         { subjectsNeeded: { $in: [reg] } },
         { classOrExam: reg },
         { classLevel: reg },
