@@ -10,7 +10,9 @@ import {
   FaCheckCircle, 
   FaSearch, 
   FaMapMarkerAlt,
-  FaBolt
+  FaBolt,
+  FaBookOpen,
+  FaAtom
 } from 'react-icons/fa';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 
@@ -31,14 +33,65 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative w-full bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-32">
-      {/* Decorative Grid & Glow Background */}
+    <section className="relative w-full text-white overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-32 bg-slate-950">
+      {/* Layer 1: High-res authentic Educator Hub / Modern Learning Academy Atmospheric Backdrop */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none transform scale-105 opacity-25"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop')`,
+        }}
+      />
+
+      {/* Layer 2: Deep Academy Gradient Overlay for Contrast & Elegance */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-950/90 to-amber-950/85 backdrop-blur-[1px] pointer-events-none"
+      />
+
+      {/* Layer 3: Multi-Directional Hub Lighting Gradients */}
+      <div 
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-blue-950/30 pointer-events-none"
+      />
+
+      {/* Layer 4: Educator Notebook & Architectural Grid Pattern */}
       <div
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-      ></div>
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/15 rounded-full filter blur-3xl opacity-40 transform translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl opacity-30 transform -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
+          backgroundSize: '36px 36px'
+        }}
+      />
+
+      {/* Layer 5: Stylized Floating Academic Motifs / Watermarks */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        {/* Top-Right: Graduation Cap */}
+        <div className="absolute -top-6 right-12 text-amber-400/10 transform rotate-12 filter blur-[0.5px]">
+          <FaGraduationCap size={180} />
+        </div>
+
+        {/* Top-Left: Open Knowledge Book */}
+        <div className="absolute top-24 left-6 text-white/5 transform -rotate-12 filter blur-[0.5px]">
+          <FaBookOpen size={120} />
+        </div>
+
+        {/* Bottom-Center-Left: Educator Mentorship Icon */}
+        <div className="absolute -bottom-10 left-1/4 text-amber-500/10 transform rotate-6 filter blur-[0.5px]">
+          <FaChalkboardTeacher size={150} />
+        </div>
+
+        {/* Bottom-Right: Science & STEM Discovery Atom */}
+        <div className="absolute bottom-8 right-1/4 text-blue-400/10 transform -rotate-6 filter blur-[0.5px]">
+          <FaAtom size={130} />
+        </div>
+
+        {/* Subtle Constellation Connection Orbs (Educator <-> Student Network) */}
+        <div className="absolute top-1/4 left-1/2 w-2 h-2 rounded-full bg-amber-400/30 animate-ping" />
+        <div className="absolute top-1/3 right-1/4 w-2 h-2 rounded-full bg-blue-400/30 animate-ping delay-1000" />
+      </div>
+
+      {/* Layer 6: Ambient Glowing Spotlights */}
+      <div className="absolute -top-32 right-10 w-[550px] h-[550px] bg-amber-500/15 rounded-full filter blur-[100px] pointer-events-none" />
+      <div className="absolute -bottom-32 -left-20 w-[500px] h-[500px] bg-blue-600/15 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-amber-600/10 rounded-full filter blur-[90px] pointer-events-none" />
       
       <div className="container mx-auto px-6 md:px-12 lg:px-24 relative z-10 flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
         {/* Left Column: Heading, Audience Switcher, CTAs */}
@@ -49,8 +102,12 @@ const HeroSection = () => {
           transition={{ duration: 0.7 }}
         >
           {/* Top Network Badge */}
-          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-500/15 text-amber-400 font-bold text-xs uppercase tracking-wider border border-amber-500/30 shadow-xs">
-            <FaGraduationCap className="mr-2 text-sm text-amber-400" />
+          <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-amber-500/15 text-amber-300 font-bold text-xs uppercase tracking-wider border border-amber-500/30 shadow-lg backdrop-blur-md">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <FaGraduationCap className="text-sm text-amber-400" />
             <span>{t('hero.badge', "India's #1 Platform for Students & Educators")}</span>
           </div>
 
