@@ -100,6 +100,58 @@ export const clearAuthCookies = (res) => {
   res.clearCookie('token', cookieOpts);
 };
 
+export const createAdminSessionAndTokens = async (user, req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || 'Unknown IP';
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  const device = parseDevice(userAgent);
+
+  const session = new ActiveSession({
+    userId: user._id,
+    device: `Admin Portal: ${device}`,
+    userAgent,
+    ip,
+    isValid: true,
+    lastActive: new Date(),
+    expiresAt: new Date(Date.now() + REFRESH_COOKIE_MAX_AGE)
+  });
+
+  const accessToken = jwt.sign(
+    { id: user._id, role: 'admin', sessionId: session._id, scope: 'admin' },
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: ACCESS_TOKEN_EXPIRY }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id, sessionId: session._id, scope: 'admin' },
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: REFRESH_TOKEN_EXPIRY }
+  );
+
+  session.token = accessToken;
+  session.refreshToken = refreshToken;
+  await session.save();
+
+  const cookieOpts = getCookieOptions();
+
+  res.cookie('adminAccessToken', accessToken, {
+    ...cookieOpts,
+    maxAge: ACCESS_COOKIE_MAX_AGE
+  });
+
+  res.cookie('adminRefreshToken', refreshToken, {
+    ...cookieOpts,
+    maxAge: REFRESH_COOKIE_MAX_AGE
+  });
+
+  return { accessToken, refreshToken, sessionId: session._id };
+};
+
+export const clearAdminCookies = (res) => {
+  const cookieOpts = getCookieOptions();
+  res.clearCookie('adminAccessToken', cookieOpts);
+  res.clearCookie('adminRefreshToken', cookieOpts);
+};
+
 export const verifyAndReissueAccessToken = async (refreshToken, res) => {
   if (!refreshToken) return null;
 

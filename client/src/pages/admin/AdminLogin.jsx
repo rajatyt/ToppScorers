@@ -1,21 +1,21 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
+import { AdminAuthContext } from '../../context/AdminAuthContext';
 import { toast } from 'react-hot-toast';
 import { FaGraduationCap, FaShieldAlt } from 'react-icons/fa';
 import { FiMail, FiLock, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 
 const AdminLogin = () => {
-  const { login, user, isAuthenticated } = useContext(AuthContext);
+  const { adminLogin, isAdminAuthenticated } = useContext(AdminAuthContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'admin') {
+    if (isAdminAuthenticated) {
       navigate('/admin', { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAdminAuthenticated, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,7 +30,7 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await adminLogin(formData.email, formData.password);
       if (data.user?.role !== 'admin') {
         toast.error('Access Denied: This account does not have administrator privileges.');
         return;

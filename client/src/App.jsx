@@ -25,6 +25,9 @@ import TeacherVerification from './pages/TeacherVerification';
 import TeacherProfileEdit from './pages/TeacherProfileEdit';
 import TeacherVerificationPromptModal from './components/TeacherVerificationPromptModal';
 
+import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
+import { AdminAuthProvider } from './context/AdminAuthContext';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -97,11 +100,11 @@ function AppContent() {
           {/* Dedicated Admin Login */}
           <Route path="/admin/login" element={<AdminLogin />} />
 
-          {/* Admin Access (Restricted to Super Admin) */}
+          {/* Admin Access (Restricted to Super Admin with isolated AdminAuthContext) */}
           <Route path="/admin/*" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <AdminProtectedRoute>
               <AdminRoutes />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
 
           {/* Fallback */}
@@ -129,9 +132,11 @@ function App() {
     <GoogleOAuthProvider clientId={googleClientId}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router>
-            <AppContent />
-          </Router>
+          <AdminAuthProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </AdminAuthProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>

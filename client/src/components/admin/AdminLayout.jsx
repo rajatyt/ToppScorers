@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AuthContext } from '../../context/AuthContext';
+import { AdminAuthContext } from '../../context/AdminAuthContext';
 import { 
   FiHome, FiLayout, FiUsers, FiUserCheck, FiHelpCircle, 
   FiMenu, FiX, FiLogOut, FiExternalLink, FiClock, FiShield, FiAward
@@ -10,7 +10,7 @@ import { FaGraduationCap } from 'react-icons/fa';
 
 const AdminLayout = ({ children }) => {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useContext(AuthContext);
+  const { adminUser, adminLogout } = useContext(AdminAuthContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const location = useLocation();
@@ -31,7 +31,7 @@ const AdminLayout = ({ children }) => {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await adminLogout();
     navigate('/admin/login');
   };
 
@@ -145,10 +145,10 @@ const AdminLayout = ({ children }) => {
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-slate-800">
             <div className="flex items-center space-x-3 truncate">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow">
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                {adminUser?.name ? adminUser.name.charAt(0).toUpperCase() : 'A'}
               </div>
               <div className="truncate">
-                <div className="text-xs font-semibold text-white truncate">{user?.name || 'Administrator'}</div>
+                <div className="text-xs font-semibold text-white truncate">{adminUser?.name || 'Administrator'}</div>
                 <div className="text-[10px] text-emerald-400 flex items-center space-x-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                   <span>Super Admin</span>

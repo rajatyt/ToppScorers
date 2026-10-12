@@ -13,7 +13,9 @@ import { serializeProfile } from '../utils/serializeProfile.js';
 import { 
   createSessionAndTokens, 
   clearAuthCookies, 
-  verifyAndReissueAccessToken 
+  verifyAndReissueAccessToken,
+  createAdminSessionAndTokens,
+  clearAdminCookies
 } from '../utils/tokenService.js';
 
 const router = express.Router();
@@ -269,6 +271,77 @@ router.get('/me', authenticate, async (req, res) => {
       profile: profile ? serializeProfile(profile, req.user) : null
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/admin/login - Dedicated admin authentication (isolated from standard user sessions)
+router.post('/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid administrator credentials' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid administrator credentials' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access Denied: This account is not an administrator.' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Admin account has been deactivated.' });
+    }
+
+    const { accessToken } = await createAdminSessionAndTokens(user, req, res);
+    const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
+
+    res.json({
+      user: userWithoutPassword,
+      token: accessToken
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/auth/admin/me - Check current admin session
+router.get('/admin/me', authenticate, async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ message: 'Access Denied: Requires admin privileges' });
+    }
+    res.json({ user: req.user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/admin/logout - Logout admin session without affecting regular user session
+router.post('/admin/logout', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.adminRefreshToken;
+    const accessToken = req.cookies?.adminAccessToken || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+    if (refreshToken) {
+      await ActiveSession.deleteMany({ refreshToken });
+    }
+    if (accessToken) {
+      await ActiveSession.deleteMany({ token: accessToken });
+    }
+
+    clearAdminCookies(res);
+    res.json({ message: 'Admin logged out successfully' });
+  } catch (error) {
+    clearAdminCookies(res);
     res.status(500).json({ message: error.message });
   }
 });

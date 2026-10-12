@@ -19,6 +19,27 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const isAdminTarget = config.url?.startsWith('/admin') || 
+                          config.url?.startsWith('/auth/admin') || 
+                          config.url?.includes('/admin');
+    
+    if (isAdminTarget) {
+      try {
+        const adminToken = localStorage.getItem('toppscorers_admin_token');
+        if (adminToken) {
+          config.headers['Authorization'] = `Bearer ${adminToken}`;
+          config.headers['x-admin-token'] = adminToken;
+          config.headers['x-auth-scope'] = 'admin';
+        }
+      } catch (e) {}
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -28,8 +49,9 @@ axiosInstance.interceptors.response.use(
     const isAuthRoute = originalRequest?.url?.includes('/auth/login') ||
                         originalRequest?.url?.includes('/auth/refresh') ||
                         originalRequest?.url?.includes('/auth/logout');
+    const isAdminRoute = originalRequest?.url?.includes('/admin');
 
-    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthRoute) {
+    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthRoute && !isAdminRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
