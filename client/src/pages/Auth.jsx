@@ -148,7 +148,7 @@ const Auth = () => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) { toast.error(t('auth.passwordsMismatch')); return; }
     if (!formData.district) {
-      toast.error('Please select your District (Fatehpur).');
+      toast.error('Please select your District (Prayagraj).');
       return;
     }
     if (!formData.area) {
@@ -217,7 +217,7 @@ const Auth = () => {
       return;
     }
     if (!googleDistrict) {
-      toast.error('Please select your District (Fatehpur).');
+      toast.error('Please select your District (Prayagraj).');
       return;
     }
     if (!googleArea) {
@@ -596,7 +596,7 @@ const Auth = () => {
                 Welcome, {googleUser.name}!
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Please select your role and location in <strong>Fatehpur</strong> to complete your account setup.
+                Please select your role and location in <strong>Prayagraj</strong> to complete your account setup.
               </p>
             </div>
 
@@ -654,7 +654,7 @@ const Auth = () => {
                 <div className="flex items-center space-x-2 pb-2 border-b border-amber-200/60">
                   <FaMapMarkerAlt className="text-amber-600 text-xs" />
                   <span className="text-xs font-bold text-amber-950 uppercase tracking-wider">
-                    Location Setup (Fatehpur)
+                    Location Setup (Prayagraj)
                   </span>
                 </div>
 

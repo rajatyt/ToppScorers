@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   FiEdit2, FiTrash2, FiPlus, FiX, FiSearch, 
   FiCheckCircle, FiBookOpen, FiMapPin, FiAward, 
@@ -31,7 +30,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 const ProfileManager = () => {
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('teachers'); // 'teachers' | 'students'
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -517,7 +515,7 @@ const ProfileManager = () => {
               >
                 <option value="">Select District</option>
                 <option value="Prayagraj">Prayagraj</option>
-                <option value="Fatehpur">Fatehpur</option>
+                {/* <option value="Fatehpur">Fatehpur</option> */}
               </select>
             </div>
             <div>

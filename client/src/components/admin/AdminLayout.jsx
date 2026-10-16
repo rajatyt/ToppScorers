@@ -1,22 +1,28 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
+import i18n from '../../i18n/i18n';
 import { 
   FiHome, FiLayout, FiUsers, FiUserCheck, FiHelpCircle, 
   FiMenu, FiX, FiLogOut, FiExternalLink, FiClock, FiShield, FiAward, FiBell
 } from 'react-icons/fi';
-import { FaGraduationCap, FaHandshake } from 'react-icons/fa';
+import { FaGraduationCap, FaHandshake, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
 import { NotificationContext } from '../../context/NotificationContext';
 
 const AdminLayout = ({ children }) => {
-  const { t, i18n } = useTranslation();
   const { adminUser, adminLogout } = useContext(AdminAuthContext);
   const { adminUnread, markAdminSectionViewed } = useContext(NotificationContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Admin panel is strictly English only — reset language to English whenever admin is opened
+  useEffect(() => {
+    if (i18n.language !== 'en') {
+      i18n.changeLanguage('en');
+    }
+  }, []);
 
   useEffect(() => {
     const updateClock = () => {
@@ -41,18 +47,16 @@ const AdminLayout = ({ children }) => {
     }
   }, [location.pathname, markAdminSectionViewed]);
 
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en');
-  };
-
   const handleLogout = async () => {
     await adminLogout();
     navigate('/admin/login');
   };
 
   const navLinks = [
-    { to: '/admin', icon: <FiHome className="text-lg" />, label: 'Dashboard', desc: 'Overview & metrics' },
-    { to: '/admin/connections', icon: <FaHandshake className="text-lg text-amber-400" />, label: 'Connections & Leads', desc: 'Direct matchmaking & commission', badgeKey: 'connections' },
+    { to: '/admin', exact: true, icon: <FiHome className="text-lg" />, label: 'Dashboard', desc: 'Overview & metrics' },
+    { to: '/admin/connections/student-to-teacher', exact: true, icon: <FaUserGraduate className="text-lg text-emerald-400" />, label: 'Student ➔ Teacher', desc: 'Student asked, Teacher accepted', badgeKey: 'connections' },
+    { to: '/admin/connections/teacher-to-student', exact: true, icon: <FaChalkboardTeacher className="text-lg text-blue-400" />, label: 'Teacher ➔ Student', desc: 'Teacher asked, Student approved' },
+    { to: '/admin/connections', exact: true, icon: <FaHandshake className="text-lg text-amber-400" />, label: 'All Leads & Pipeline', desc: 'Direct matchmaking & commission' },
     { to: '/admin/queries', icon: <FiHelpCircle className="text-lg text-sky-400" />, label: 'User Queries & Doubts', desc: 'Direct issue resolution', badgeKey: 'queries' },
     { to: '/admin/verifications', icon: <FiAward className="text-lg" />, label: 'Verification Queue', desc: 'Teacher review & badge', badgeKey: 'verifications' },
     { to: '/admin/widgets', icon: <FiLayout className="text-lg" />, label: 'Widget Manager', desc: 'Homepage sections' },
@@ -64,7 +68,9 @@ const AdminLayout = ({ children }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path.includes('/connections')) return 'Connection Leads & Commission Matchmaking';
+    if (path.includes('/connections/student-to-teacher')) return 'Student Approached ➔ Teacher Accepted Leads';
+    if (path.includes('/connections/teacher-to-student')) return 'Teacher Approached ➔ Student Approved Leads';
+    if (path.includes('/connections')) return 'Connection Leads & Commission Center';
     if (path.includes('/queries')) return 'User Queries, Doubts & Direct Support';
     if (path.includes('/verifications')) return 'Teacher Verification Queue';
     if (path.includes('/widgets')) return 'Widget & Layout Manager';
@@ -125,7 +131,9 @@ const AdminLayout = ({ children }) => {
         </div>
         <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
           {navLinks.map((link) => {
-            const isActive = link.to === '/admin' 
+            const isActive = link.exact
+              ? location.pathname === link.to
+              : link.to === '/admin' 
               ? location.pathname === '/admin' 
               : location.pathname.startsWith(link.to);
 
@@ -246,17 +254,6 @@ const AdminLayout = ({ children }) => {
                 <FiClock className="text-slate-400" />
                 <span>{currentTime}</span>
               </div>
-
-              {/* Language Switcher */}
-              <button 
-                onClick={toggleLanguage}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-all"
-                title="Switch Language"
-              >
-                <span className={i18n.language === 'en' ? 'text-blue-700 font-bold' : 'text-slate-400'}>EN</span>
-                <span className="text-slate-300">/</span>
-                <span className={i18n.language === 'hi' ? 'text-amber-600 font-bold' : 'text-slate-400'}>HI</span>
-              </button>
 
               {/* Security Status Badge */}
               <div className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium border border-emerald-200/60">

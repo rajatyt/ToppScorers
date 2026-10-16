@@ -157,7 +157,7 @@ const TeacherHomeVerificationBar = () => {
 
             <div className="flex items-center space-x-2 flex-shrink-0">
               <Link
-                to="/profile"
+                to="/profile?tab=general"
                 className="inline-flex items-center px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-xs font-bold transition-colors"
               >
                 <FaEdit className="mr-1 text-[11px]" />

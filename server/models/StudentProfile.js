@@ -36,6 +36,25 @@ const studentProfileSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'suspended'], 
     default: 'approved' 
   },
+  isVerified: { type: Boolean, default: false },
+  verificationStatus: {
+    type: String,
+    enum: ['unverified', 'pending', 'verified', 'rejected'],
+    default: 'unverified'
+  },
+  contactVerified: { type: Boolean, default: false },
+  verificationPhone: { type: String, default: '' },
+  verificationEmail: { type: String, default: '' },
+  studentOrParentRole: {
+    type: String,
+    enum: ['student', 'parent', 'guardian'],
+    default: 'student'
+  },
+  verificationSubmittedAt: { type: Date, default: null },
+  verifiedAt: { type: Date, default: null },
+  rejectionReason: { type: String, default: '' },
+  adminVerificationNotes: { type: String, default: '' },
+  viewedByAdmin: { type: Boolean, default: false },
   privacy: {
     showPhone: { type: Boolean, default: false },
     showFullAddress: { type: Boolean, default: false },

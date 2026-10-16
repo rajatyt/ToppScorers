@@ -5,7 +5,7 @@ const widgetConfigSchema = new mongoose.Schema({
     type: String, 
     required: true, 
     unique: true,
-    enum: ['hero', 'coverage', 'whyTeacherHunt', 'forTeachers', 'forStudents', 'whatsapp', 'faqs']
+    enum: ['hero', 'coverage', 'whyTeacherHunt', 'calculator', 'whatsapp', 'faqs']
   },
   label: { type: String },
   order: { type: Number, required: true },

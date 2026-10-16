@@ -1,44 +1,55 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { NotificationContext } from '../context/NotificationContext';
 import { toast } from 'react-hot-toast';
 import {
   FiHelpCircle, FiSend, FiMessageSquare, FiCheckCircle,
-  FiClock, FiAlertCircle, FiPlus, FiChevronRight, FiCopy,
-  FiCheck, FiArrowLeft, FiInfo, FiDollarSign
+  FiClock, FiAlertCircle, FiPlus, FiChevronRight,
+  FiArrowLeft, FiInfo, FiDollarSign
 } from 'react-icons/fi';
 import { FaGraduationCap, FaWhatsapp, FaRupeeSign } from 'react-icons/fa';
 
 const FAQS_LIST = [
   {
     q: 'How does the 1st Month 50% commission work?',
-    a: 'ToppScorers charges a 50% service fee strictly on the 1st month tuition fee for successfully connecting teacher and student. From Month 2 onwards, 100% of the fee belongs completely to the teacher with zero ongoing commission.'
+    q_hi: 'पहले महीने का 50% कमीशन कैसे काम करता है?',
+    a: 'ToppScorers charges a 50% service fee strictly on the 1st month tuition fee for successfully connecting teacher and student. From Month 2 onwards, 100% of the fee belongs completely to the teacher with zero ongoing commission.',
+    a_hi: 'शिक्षक और छात्र को सफलतापूर्वक जोड़ने के लिए ToppScorers केवल पहले महीने की ट्यूशन फीस पर 50% सेवा शुल्क लेता है। दूसरे महीने से पूरी 100% फीस शिक्षक की होती है और आगे कोई कमीशन नहीं लगता।'
   },
   {
     q: 'How long does Teacher Profile Verification take?',
-    a: 'Verification is typically reviewed within 24 hours of document submission. Once verified, your profile displays the prestigious "Verified Expert" badge.'
+    q_hi: 'शिक्षक प्रोफ़ाइल सत्यापन में कितना समय लगता है?',
+    a: 'Verification is typically reviewed within 24 hours of document submission. Once verified, your profile displays the prestigious "Verified Expert" badge.',
+    a_hi: 'दस्तावेज़ जमा करने के 24 घंटों के भीतर सत्यापन की समीक्षा की जाती है। सत्यापित होने के बाद आपकी प्रोफ़ाइल पर प्रतिष्ठित "सत्यापित विशेषज्ञ" का बैज दिखता है।'
   },
   {
     q: 'How do teachers and students get connected?',
-    a: 'When you send a connection request, our support team actively follows up and contacts both parties via phone/WhatsApp to arrange convenient tuition timings and demo classes.'
+    q_hi: 'शिक्षक और छात्र आपस में कैसे जुड़ते हैं?',
+    a: 'When you send a connection request, our support team actively follows up and contacts both parties via phone/WhatsApp to arrange convenient tuition timings and demo classes.',
+    a_hi: 'जब आप कनेक्शन अनुरोध भेजते हैं, तो हमारी सपोर्ट टीम फ़ोन या व्हाट्सएप पर दोनों पक्षों से संपर्क करके ट्यूशन का समय और डेमो क्लास तय करवाती है।'
   },
   {
     q: 'Can I search a teacher or student using their Job ID?',
-    a: 'Yes! Every teacher has an ID like JOB-T1001 and every student has an ID like JOB-S1001. Simply type the Job ID or its number directly in the search bar.'
+    q_hi: 'क्या मैं जॉब आईडी से शिक्षक या छात्र को खोज सकता हूँ?',
+    a: 'Yes! Every teacher has an ID like JOB-T1001 and every student has an ID like JOB-S1001. Simply type the Job ID or its number directly in the search bar.',
+    a_hi: 'हाँ! प्रत्येक शिक्षक की आईडी जैसे JOB-T1001 और छात्र की आईडी जैसे JOB-S1001 होती है। सर्च बार में जॉब आईडी टाइप करके सीधे खोज सकते हैं।'
   }
 ];
 
 const CATEGORIES = [
-  { value: 'commission_payment', label: '💰 1st Month Commission & Fees' },
-  { value: 'tuition_issue', label: '📚 Tuition Timing & Coordination' },
-  { value: 'profile_verification', label: '🛡️ Profile & Document Verification' },
-  { value: 'account_login', label: '🔑 Account & Password Assistance' },
-  { value: 'technical', label: '⚙️ Technical / Website Doubts' },
-  { value: 'general', label: '❓ General Question' }
+  { value: 'commission_payment', label: '💰 1st Month Commission & Fees', label_hi: '💰 1st महीना कमीशन और फीस' },
+  { value: 'tuition_issue', label: '📚 Tuition Timing & Coordination', label_hi: '📚 ट्यूशन समय और समन्वय' },
+  { value: 'profile_verification', label: '🛡️ Profile & Document Verification', label_hi: '🛡️ प्रोफ़ाइल और दस्तावेज़ सत्यापन' },
+  { value: 'account_login', label: '🔑 Account & Password Assistance', label_hi: '🔑 खाता और पासवर्ड सहायता' },
+  { value: 'technical', label: '⚙️ Technical / Website Doubts', label_hi: '⚙️ तकनीकी / वेबसाइट संबंधित प्रश्न' },
+  { value: 'general', label: '❓ General Question', label_hi: '❓ सामान्य प्रश्न' }
 ];
 
 const SupportQueries = () => {
+  const { t, i18n } = useTranslation();
+  const isHi = i18n.language?.startsWith('hi');
   const { user, profile } = useContext(AuthContext);
   const { unreadCounts, markSectionViewed } = useContext(NotificationContext);
 
@@ -57,10 +68,8 @@ const SupportQueries = () => {
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
-  const [copiedJobId, setCopiedJobId] = useState(false);
 
   const isTeacher = user?.role === 'teacher';
-  const myJobId = profile?.jobId || '';
 
   // Fetch user queries
   const fetchQueries = useCallback(async () => {
@@ -161,14 +170,6 @@ const SupportQueries = () => {
     }
   };
 
-  const copyMyJobId = () => {
-    if (!myJobId) return;
-    navigator.clipboard?.writeText(myJobId);
-    setCopiedJobId(true);
-    toast.success(`Copied Job ID: ${myJobId}`);
-    setTimeout(() => setCopiedJobId(false), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50/70 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -180,25 +181,14 @@ const SupportQueries = () => {
                 <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
                   Direct Admin Help & Doubts
                 </span>
-                {myJobId && (
-                  <button
-                    type="button"
-                    onClick={copyMyJobId}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30 font-mono text-xs font-bold transition-all cursor-pointer shadow-2xs backdrop-blur-xs"
-                    title="Click to copy your Job ID"
-                  >
-                    <span className="text-slate-300 font-sans text-[10px] uppercase font-bold tracking-wider">JOB ID:</span>
-                    <span className="text-amber-300">{myJobId}</span>
-                    {copiedJobId ? <FiCheck className="text-emerald-400 text-xs ml-0.5" /> : <FiCopy className="text-slate-300 text-xs ml-0.5" />}
-                  </button>
-                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Ask Questions & Resolve Issues Directly
+                {isHi ? 'प्रशासन से सीधे प्रश्न पूछें और समाधान पाएं' : 'Ask Questions & Resolve Issues Directly'}
               </h1>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                Have a doubt regarding tuition matching, commission rules, payment, or profile verification? 
-                Ask our administration directly below and get verified official answers in this thread.
+                {isHi 
+                  ? 'ट्यूशन समन्वय, 50% कमीशन नियम, भुगतान या प्रोफ़ाइल सत्यापन के संबंध में कोई संदेह है? नीचे सीधे हमारे प्रशासन से पूछें और इस थ्रेड में सत्यापित उत्तर पाएं।' 
+                  : 'Have a doubt regarding tuition matching, commission rules, payment, or profile verification? Ask our administration directly below and get verified official answers in this thread.'}
               </p>
             </div>
 
@@ -209,12 +199,12 @@ const SupportQueries = () => {
               {activeTab === 'create' ? (
                 <>
                   <FiMessageSquare className="mr-1.5" />
-                  View My Queries ({queries.length})
+                  {isHi ? `मेरे प्रश्न (${queries.length})` : `View My Queries (${queries.length})`}
                 </>
               ) : (
                 <>
                   <FiPlus className="mr-1.5 text-base" />
-                  Ask New Doubt
+                  {isHi ? 'नया प्रश्न पूछें' : 'Ask New Doubt'}
                 </>
               )}
             </button>
@@ -232,7 +222,7 @@ const SupportQueries = () => {
             }`}
           >
             <FiMessageSquare size={16} />
-            <span>My Queries & Doubts</span>
+            <span>{isHi ? 'मेरे प्रश्न और समस्याएं' : 'My Queries & Doubts'}</span>
             {queries.length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
                 {queries.length}
@@ -240,7 +230,7 @@ const SupportQueries = () => {
             )}
             {unreadCounts?.queries > 0 && (
               <span className="px-1.5 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full animate-pulse">
-                {unreadCounts.queries} new
+                {unreadCounts.queries} {isHi ? 'नए' : 'new'}
               </span>
             )}
           </button>
@@ -254,7 +244,7 @@ const SupportQueries = () => {
             }`}
           >
             <FiPlus size={16} />
-            <span>Ask a Doubt / Raise Issue</span>
+            <span>{isHi ? 'नया प्रश्न / समस्या दर्ज करें' : 'Ask a Doubt / Raise Issue'}</span>
           </button>
         </div>
 
@@ -279,7 +269,7 @@ const SupportQueries = () => {
                     className="w-full text-xs font-semibold p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                   >
                     {CATEGORIES.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      <option key={cat.value} value={cat.value}>{isHi ? (cat.label_hi || cat.label) : cat.label}</option>
                     ))}
                   </select>
                 </div>
@@ -287,7 +277,7 @@ const SupportQueries = () => {
                 {/* Priority */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Urgency Level
+                    {isHi ? 'प्राथमिकता स्तर' : 'Urgency Level'}
                   </label>
                   <div className="flex gap-2">
                     {['low', 'medium', 'high', 'urgent'].map(pr => (
@@ -305,7 +295,7 @@ const SupportQueries = () => {
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
-                        {pr}
+                        {pr === 'low' ? (isHi ? 'सामान्य' : 'Low') : pr === 'medium' ? (isHi ? 'मध्यम' : 'Medium') : pr === 'high' ? (isHi ? 'उच्च' : 'High') : (isHi ? 'अति आवश्यक' : 'Urgent')}
                       </button>
                     ))}
                   </div>
@@ -314,14 +304,14 @@ const SupportQueries = () => {
                 {/* Subject Input */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Subject / Title <span className="text-rose-500">*</span>
+                    {isHi ? 'विषय / शीर्षक' : 'Subject / Title'} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g. Question regarding Month 1 commission deduction or Student timing..."
+                    placeholder={isHi ? 'उदा. पहले महीने के कमीशन या ट्यूशन समय के संबंध में प्रश्न...' : 'e.g. Question regarding Month 1 commission deduction or Student timing...'}
                     className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                   />
                 </div>
@@ -329,14 +319,14 @@ const SupportQueries = () => {
                 {/* Detailed Description */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Detailed Message <span className="text-rose-500">*</span>
+                    {isHi ? 'विस्तृत संदेश / प्रश्न' : 'Detailed Message'} <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     rows={5}
                     required
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Describe your issue or doubt in detail. Mention any specific tuition, student/teacher name, or dates if relevant..."
+                    placeholder={isHi ? 'अपनी समस्या या प्रश्न का विस्तार से विवरण दें...' : 'Describe your issue or doubt in detail. Mention any specific tuition, student/teacher name, or dates if relevant...'}
                     className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                   />
                 </div>
@@ -347,7 +337,7 @@ const SupportQueries = () => {
                   className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
                 >
                   <FiSend />
-                  <span>{submitting ? 'Submitting...' : 'Submit to Admin Support'}</span>
+                  <span>{submitting ? (isHi ? 'भेजा जा रहा है...' : 'Submitting...') : (isHi ? 'एडमिन को प्रश्न भेजें' : 'Submit to Admin Support')}</span>
                 </button>
               </form>
             </div>
@@ -357,13 +347,13 @@ const SupportQueries = () => {
               <div className="bg-amber-50/60 rounded-3xl border border-amber-200/80 p-6 shadow-xs">
                 <div className="flex items-center space-x-2 text-amber-900 font-extrabold text-sm mb-3">
                   <FiInfo size={18} />
-                  <span>Frequently Asked Doubts</span>
+                  <span>{isHi ? 'अक्सर पूछे जाने वाले प्रश्न' : 'Frequently Asked Doubts'}</span>
                 </div>
                 <div className="space-y-3">
                   {FAQS_LIST.map((faq, i) => (
                     <div key={i} className="bg-white/80 p-3.5 rounded-2xl border border-amber-200/50 shadow-2xs">
-                      <h4 className="font-bold text-slate-900 text-xs leading-snug mb-1">{faq.q}</h4>
-                      <p className="text-[11px] text-slate-600 leading-relaxed">{faq.a}</p>
+                      <h4 className="font-bold text-slate-900 text-xs leading-snug mb-1">{isHi ? (faq.q_hi || faq.q) : faq.q}</h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">{isHi ? (faq.a_hi || faq.a) : faq.a}</p>
                     </div>
                   ))}
                 </div>

@@ -321,7 +321,7 @@ const seedData = async () => {
     }
 
     // Default Widgets
-    const sections = ['hero', 'coverage', 'whyTeacherHunt', 'forTeachers', 'forStudents', 'whatsapp', 'faqs'];
+    const sections = ['hero', 'coverage', 'whyTeacherHunt', 'calculator', 'whatsapp', 'faqs'];
     const widgetsToInsert = sections.map((key, i) => ({
       sectionKey: key,
       label: key.charAt(0).toUpperCase() + key.slice(1),

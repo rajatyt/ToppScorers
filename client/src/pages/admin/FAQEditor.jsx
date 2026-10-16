@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   FiPlus, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, 
   FiHelpCircle, FiEye, FiEyeOff, FiCheck, FiX, FiGlobe 
@@ -30,7 +29,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 const FAQEditor = () => {
-  const { t } = useTranslation();
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,10 +48,12 @@ const FAQEditor = () => {
   const fetchFaqs = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/faqs/all');
+      const res = await axios.get('/admin/faqs/all');
       setFaqs((res.data || []).sort((a, b) => a.order - b.order));
     } catch (error) {
-      toast.error('Failed to load FAQ list');
+      console.error('Failed to load FAQs:', error);
+      const msg = error.response?.data?.message || 'Failed to load FAQ list';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -99,16 +99,16 @@ const FAQEditor = () => {
       };
 
       if (editingFaq) {
-        await axios.put(`/faqs/${editingFaq._id}`, payload);
+        await axios.put(`/admin/faqs/${editingFaq._id}`, payload);
         toast.success('FAQ entry updated');
       } else {
-        await axios.post('/faqs', payload);
+        await axios.post('/admin/faqs', payload);
         toast.success('New FAQ entry published');
       }
       setIsModalOpen(false);
       fetchFaqs();
     } catch (error) {
-      toast.error('Failed to save FAQ');
+      toast.error(error.response?.data?.message || 'Failed to save FAQ');
     } finally {
       setSubmitting(false);
     }
@@ -117,11 +117,11 @@ const FAQEditor = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Delete this question permanently?')) {
       try {
-        await axios.delete(`/faqs/${id}`);
+        await axios.delete(`/admin/faqs/${id}`);
         toast.success('FAQ deleted');
         fetchFaqs();
       } catch (error) {
-        toast.error('Failed to remove FAQ');
+        toast.error(error.response?.data?.message || 'Failed to remove FAQ');
       }
     }
   };

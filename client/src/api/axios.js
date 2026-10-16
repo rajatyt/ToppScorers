@@ -21,9 +21,14 @@ const processQueue = (error, token = null) => {
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const isAdminTarget = config.url?.startsWith('/admin') || 
-                          config.url?.startsWith('/auth/admin') || 
-                          config.url?.includes('/admin');
+    const url = config.url || '';
+    const isAdminTarget = url.startsWith('/admin') || 
+                          url.startsWith('/auth/admin') || 
+                          url.includes('/admin') ||
+                          url.startsWith('/faqs/all') ||
+                          (url.startsWith('/faqs') && config.method && config.method.toLowerCase() !== 'get') ||
+                          (url.startsWith('/widgets') && config.method && config.method.toLowerCase() !== 'get') ||
+                          (typeof window !== 'undefined' && window.location?.pathname?.startsWith('/admin'));
     
     if (isAdminTarget) {
       try {

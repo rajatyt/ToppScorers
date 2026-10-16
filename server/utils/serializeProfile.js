@@ -195,8 +195,11 @@ export function serializeProfile(profile, requestingUser = null, connectionStatu
     fee: raw.fee || null,
     teachingMode: raw.teachingMode || 'home',
     rating: raw.rating || 4.8,
-    isVerified: Boolean(raw.isVerified),
+    isVerified: Boolean(raw.isVerified && raw.verificationStatus === 'verified'),
     verificationStatus: raw.verificationStatus || (raw.isVerified ? 'verified' : 'unverified'),
+    verificationSubmittedAt: raw.verificationSubmittedAt || null,
+    verifiedAt: raw.verifiedAt || null,
+    rejectionReason: raw.rejectionReason || '',
     isAvailable: Boolean(raw.isAvailable),
 
     // Requirement Details
@@ -214,6 +217,10 @@ export function serializeProfile(profile, requestingUser = null, connectionStatu
     preferredTiming: raw.preferredTiming || '',
     budget: raw.budget || null,
     preferences: raw.preferences || {},
+    studentOrParentRole: raw.studentOrParentRole || 'student',
+    verificationPhone: raw.verificationPhone || user.phone || '',
+    verificationEmail: raw.verificationEmail || user.email || '',
+    contactVerified: Boolean(raw.isVerified && raw.verificationStatus === 'verified'),
 
     // Location privacy
     area: raw.area || '',

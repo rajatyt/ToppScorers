@@ -171,39 +171,21 @@ const HeroSection = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto pt-1">
             {isUserTeacher ? (
-              <>
-                <Link 
-                  to="/students"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 text-center text-sm flex items-center justify-center hover:scale-[1.02]"
-                >
-                  <FaUserGraduate className="mr-2" />
-                  {t('heroTeacher.findStudents')}
-                </Link>
-                <Link 
-                  to="/dashboard"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-bold rounded-xl transition-all duration-300 text-center text-sm flex items-center justify-center"
-                >
-                  {t('heroTeacher.myDashboard')}
-                  <FiArrowRight className="ml-2" />
-                </Link>
-              </>
+              <Link 
+                to="/students"
+                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 text-center text-sm flex items-center justify-center hover:scale-[1.02]"
+              >
+                <FaUserGraduate className="mr-2" />
+                {t('heroTeacher.findStudents')}
+              </Link>
             ) : isUserStudent ? (
-              <>
-                <Link 
-                  to="/teachers"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 text-center text-sm flex items-center justify-center hover:scale-[1.02]"
-                >
-                  <FaChalkboardTeacher className="mr-2" />
-                  {t('heroStudent.findTeachers')}
-                </Link>
-                <Link 
-                  to="/dashboard"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-white font-bold rounded-xl transition-all duration-300 text-center text-sm flex items-center justify-center"
-                >
-                  {t('heroStudent.myDashboard')}
-                  <FiArrowRight className="ml-2" />
-                </Link>
-              </>
+              <Link 
+                to="/teachers"
+                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all duration-300 text-center text-sm flex items-center justify-center hover:scale-[1.02]"
+              >
+                <FaChalkboardTeacher className="mr-2" />
+                {t('heroStudent.findTeachers')}
+              </Link>
             ) : activeRole === 'teacher' ? (
               <>
                 <Link 

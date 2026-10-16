@@ -5,12 +5,11 @@
  */
 
 export const DISTRICTS = [
-  // 'Prayagraj', // Commented out for now
-  'Fatehpur'
+  'Prayagraj',
+  // 'Fatehpur' // Commented out for now
 ];
 
 export const DISTRICT_AREAS = {
-  /*
   Prayagraj: [
     'Civil Lines',
     'Katra',
@@ -35,7 +34,7 @@ export const DISTRICT_AREAS = {
     'Colonelganj',
     'Other Area'
   ],
-  */
+  /*
   Fatehpur: [
     'Civil Lines',
     'Radha Nagar',
@@ -58,6 +57,7 @@ export const DISTRICT_AREAS = {
     'Thariyaon',
     'Other Area'
   ]
+  */
 };
 
 export const getAreasForDistrict = (district) => {

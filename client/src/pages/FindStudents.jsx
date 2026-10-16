@@ -152,7 +152,7 @@ const FindStudents = () => {
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  placeholder={t('common.searchStudentsPlaceholder', 'Search by Job ID (e.g. JOB-S1001), subject, class, student name, or area...')}
+                  placeholder={t('common.searchStudentsPlaceholder', 'Search by subject, class, student name, or area...')}
                   className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-slate-400 text-slate-900"
                 />
               </div>
@@ -222,10 +222,14 @@ const FindStudents = () => {
                     <option value="Mathematics">Mathematics</option>
                     <option value="Physics">Physics</option>
                     <option value="Chemistry">Chemistry</option>
-                    <option value="Biology">Biology</option>
+                    <option value="Biology">Biology (Botany & Zoology)</option>
+                    <option value="Science">General Science (Classes 1–10)</option>
+                    <option value="Social Science">Social Science (History, Civics, Geo)</option>
                     <option value="English">English</option>
-                    <option value="History">History & Polity</option>
-                    <option value="Accounts">Accountancy & Economics</option>
+                    <option value="Commerce">Commerce & Accountancy</option>
+                    <option value="Economics">Economics</option>
+                    <option value="Aptitude">Quantitative Aptitude & Reasoning</option>
+                    <option value="Coding">Coding & Data Science</option>
                   </select>
                 </div>
 
@@ -240,17 +244,27 @@ const FindStudents = () => {
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-800"
                   >
                     <option value="">All Levels</option>
-                    <option value="Class 10">Class 10 Board</option>
-                    <option value="Class 11">Class 11</option>
-                    <option value="Class 12">Class 12 Board</option>
-                    <option value="JEE">JEE Main / Advanced</option>
+                    <option value="Class 1-5">Primary (Classes 1–5)</option>
+                    <option value="Class 6-8">Middle School (Classes 6–8)</option>
+                    <option value="Class 9-10">Secondary (Classes 9–10 Board)</option>
+                    <option value="Class 11">Class 11 (PCMB / Commerce)</option>
+                    <option value="Class 12">Class 12 (Board Prep)</option>
+                    <option value="Foundation">Foundation (Classes 6–10 / Olympiad)</option>
+                    <option value="JEE">JEE Main & Advanced</option>
                     <option value="NEET">NEET Medical</option>
-                    <option value="UPSC">UPSC Civil Services</option>
-                    <option value="Dropper">Dropper / Repeater</option>
+                    <option value="CUET">CUET / University Entrance</option>
+                    <option value="BITSAT">BITSAT & State CETs</option>
+                    <option value="UPSC">UPSC Civil Services & PCS</option>
+                    <option value="GATE">GATE & Technical PSUs</option>
+                    <option value="SSC">SSC, Banking & Railways</option>
+                    <option value="Defence">Defence (NDA / CDS)</option>
+                    <option value="CTET">CTET & Teaching Exams</option>
+                    <option value="Coding">Coding, Python & Tech Skills</option>
+                    <option value="Dropper">Dropper / Repeater Batch</option>
                   </select>
                 </div>
 
-                {/* District Filter (Prayagraj & Fatehpur only) */}
+                {/* District Filter (Prayagraj) */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="font-bold text-slate-700 uppercase tracking-wider flex items-center">
@@ -276,7 +290,7 @@ const FindStudents = () => {
                     }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-800 font-medium"
                   >
-                    <option value="">All Districts (Fatehpur)</option>
+                    <option value="">All Districts (Prayagraj)</option>
                     {DISTRICTS.map((dist) => (
                       <option key={dist} value={dist}>{dist}</option>
                     ))}

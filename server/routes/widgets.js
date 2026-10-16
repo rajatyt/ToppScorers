@@ -7,6 +7,7 @@ const router = express.Router();
 // GET /api/widgets - Public
 router.get('/', async (req, res) => {
   try {
+    await WidgetConfig.deleteMany({ sectionKey: { $in: ['forTeachers', 'forStudents'] } });
     const widgets = await WidgetConfig.find().sort('order');
     res.json(widgets);
   } catch (error) {

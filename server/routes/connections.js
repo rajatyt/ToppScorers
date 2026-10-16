@@ -41,8 +41,28 @@ router.post('/', async (req, res) => {
             ? `Your verification was not approved: "${teacherProf?.rejectionReason || 'Please resubmit valid credentials'}". Update your documents to contact students.`
             : 'Verification Required: Only verified teachers can send connection requests to students. Complete teacher verification to unlock student outreach.',
           verificationRequired: true,
+          verificationRole: 'teacher',
           verificationStatus: vStatus,
           rejectionReason: teacherProf?.rejectionReason || ''
+        });
+      }
+    }
+
+    // Role Rule: Students/Parents must be verified before initiating connection requests to teachers
+    if (req.user.role === 'student' && targetUser.role === 'teacher') {
+      const studentProf = await StudentProfile.findOne({ userId: fromUserId });
+      if (!studentProf || !studentProf.isVerified || studentProf.verificationStatus !== 'verified') {
+        const vStatus = studentProf?.verificationStatus || 'unverified';
+        return res.status(403).json({
+          message: vStatus === 'pending'
+            ? 'Your verification is currently under review by our team. You cannot send connection requests to teachers until your phone & email are verified.'
+            : vStatus === 'rejected'
+            ? `Your verification was not approved: "${studentProf?.rejectionReason || 'Invalid contact details'}". Update your contact details to continue.`
+            : 'Verification Required: Please verify your contact phone number and email to establish yourself as a genuine student or parent before sending requests to teachers.',
+          verificationRequired: true,
+          verificationRole: 'student',
+          verificationStatus: vStatus,
+          rejectionReason: studentProf?.rejectionReason || ''
         });
       }
     }

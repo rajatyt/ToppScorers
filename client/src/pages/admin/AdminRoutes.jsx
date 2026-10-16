@@ -15,7 +15,9 @@ const AdminRoutes = () => (
   <AdminLayout>
     <Routes>
       <Route index element={<AdminDashboard />} />
-      <Route path="connections" element={<ConnectionManager />} />
+      <Route path="connections" element={<ConnectionManager defaultSection="all" />} />
+      <Route path="connections/student-to-teacher" element={<ConnectionManager defaultSection="student_to_teacher_accepted" />} />
+      <Route path="connections/teacher-to-student" element={<ConnectionManager defaultSection="teacher_to_student_accepted" />} />
       <Route path="queries" element={<QueryManager />} />
       <Route path="verifications" element={<VerificationQueue />} />
       <Route path="widgets" element={<WidgetManager />} />

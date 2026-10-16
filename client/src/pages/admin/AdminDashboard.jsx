@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { 
   FiUsers, FiBookOpen, FiActivity, FiGlobe, 
@@ -11,7 +10,6 @@ import axios from '../../api/axios';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ totalUsers: 0, totalTeachers: 0, totalStudents: 0, activeSessions: 0 });
   const [connMetrics, setConnMetrics] = useState({ totalRequests: 0, newLeads: 0, totalCommissionReceived: 0 });

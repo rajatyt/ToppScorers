@@ -682,13 +682,167 @@ router.patch('/verifications/:id/notes', async (req, res) => {
 });
 
 // ==========================================
+// STUDENT / PARENT VERIFICATION QUEUE ENDPOINTS
+// ==========================================
+
+// GET /api/admin/student-verifications - Get list of students/parents in verification queue
+router.get('/student-verifications', async (req, res) => {
+  try {
+    const { status = 'pending', search } = req.query;
+    let query = {};
+
+    if (status && status !== 'all') {
+      if (status === 'pending') {
+        query = {
+          $or: [
+            { verificationStatus: 'pending' },
+            { contactVerified: true, isVerified: false },
+            { verificationStatus: 'unverified', isVerified: false, verificationPhone: { $exists: true, $ne: '' } }
+          ]
+        };
+      } else if (status === 'verified') {
+        query = {
+          $or: [
+            { verificationStatus: 'verified' },
+            { isVerified: true }
+          ]
+        };
+      } else if (status === 'rejected') {
+        query = { verificationStatus: 'rejected' };
+      } else {
+        query.verificationStatus = status;
+      }
+    }
+
+    const sortOrder = status === 'pending'
+      ? { verificationSubmittedAt: -1, createdAt: -1 }
+      : { updatedAt: -1 };
+
+    let students = await StudentProfile.find(query)
+      .populate('userId', 'name email phone avatar createdAt isActive')
+      .sort(sortOrder);
+
+    if (search && search.trim()) {
+      const reg = new RegExp(search.trim(), 'i');
+      students = students.filter(s =>
+        (s.userId && (reg.test(s.userId.name) || reg.test(s.userId.email) || reg.test(s.userId.phone))) ||
+        (s.verificationPhone && reg.test(s.verificationPhone)) ||
+        (s.verificationEmail && reg.test(s.verificationEmail)) ||
+        (s.jobId && reg.test(s.jobId)) ||
+        (s.classOrExam && reg.test(s.classOrExam)) ||
+        (s.area && reg.test(s.area)) ||
+        (s.location?.city && reg.test(s.location.city)) ||
+        (s.subjectsNeeded && s.subjectsNeeded.some(sub => reg.test(sub)))
+      );
+    }
+
+    // Counts
+    const pendingCount = await StudentProfile.countDocuments({
+      $or: [
+        { verificationStatus: 'pending' },
+        { contactVerified: true, isVerified: false },
+        { verificationStatus: 'unverified', isVerified: false, verificationPhone: { $exists: true, $ne: '' } }
+      ]
+    });
+    const verifiedCount = await StudentProfile.countDocuments({
+      $or: [
+        { verificationStatus: 'verified' },
+        { isVerified: true }
+      ]
+    });
+    const rejectedCount = await StudentProfile.countDocuments({
+      verificationStatus: 'rejected'
+    });
+    const totalCount = await StudentProfile.countDocuments();
+
+    res.json({
+      counts: {
+        pending: pendingCount,
+        verified: verifiedCount,
+        rejected: rejectedCount,
+        total: totalCount
+      },
+      students
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/student-verifications/:id/approve - Approve student verification
+router.patch('/student-verifications/:id/approve', async (req, res) => {
+  try {
+    const profile = await StudentProfile.findById(req.params.id).populate('userId', 'name email phone');
+    if (!profile) return res.status(404).json({ message: 'Student profile not found' });
+
+    profile.isVerified = true;
+    profile.verificationStatus = 'verified';
+    profile.contactVerified = true;
+    profile.verifiedAt = new Date();
+    profile.rejectionReason = '';
+    if (req.body.notes !== undefined) {
+      profile.adminVerificationNotes = req.body.notes;
+    }
+
+    await profile.save();
+    res.json({
+      message: `Student/Parent ${profile.userId?.name || ''} approved and verified!`,
+      profile
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/student-verifications/:id/reject - Reject student verification
+router.patch('/student-verifications/:id/reject', async (req, res) => {
+  try {
+    const { reason, notes } = req.body;
+    const profile = await StudentProfile.findById(req.params.id).populate('userId', 'name email phone');
+    if (!profile) return res.status(404).json({ message: 'Student profile not found' });
+
+    profile.isVerified = false;
+    profile.verificationStatus = 'rejected';
+    profile.rejectionReason = reason || 'Could not verify contact details over phone/email. Please update details.';
+    if (notes !== undefined) {
+      profile.adminVerificationNotes = notes;
+    }
+
+    await profile.save();
+    res.json({
+      message: `Student verification marked as rejected. Reason: ${profile.rejectionReason}`,
+      profile
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// PATCH /api/admin/student-verifications/:id/notes - Update admin verification notes for student
+router.patch('/student-verifications/:id/notes', async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const profile = await StudentProfile.findByIdAndUpdate(
+      req.params.id,
+      { adminVerificationNotes: notes || '' },
+      { new: true }
+    ).populate('userId', 'name email phone');
+
+    if (!profile) return res.status(404).json({ message: 'Student profile not found' });
+    res.json({ message: 'Verification notes updated', profile });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==========================================
 // CONNECTION LEADS & MATCHMAKING ENDPOINTS
 // ==========================================
 
 // GET /api/admin/connections - Fetch all connection requests for manual matchmaking
 router.get('/connections', async (req, res) => {
   try {
-    const { leadStatus, status, commissionStatus, search, district } = req.query;
+    const { leadStatus, status, commissionStatus, search, district, direction } = req.query;
 
     let query = {};
     if (leadStatus && leadStatus !== 'all') {
@@ -715,11 +869,11 @@ router.get('/connections', async (req, res) => {
       if (reqItem.fromUserId) {
         if (reqItem.fromUserId.role === 'teacher') {
           fromProfile = await TeacherProfile.findOne({ userId: reqItem.fromUserId._id })
-            .select('subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
+            .select('jobId subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
             .lean();
         } else if (reqItem.fromUserId.role === 'student') {
           fromProfile = await StudentProfile.findOne({ userId: reqItem.fromUserId._id })
-            .select('subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
+            .select('jobId subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
             .lean();
         }
       }
@@ -727,11 +881,11 @@ router.get('/connections', async (req, res) => {
       if (reqItem.toUserId) {
         if (reqItem.toUserId.role === 'teacher') {
           toProfile = await TeacherProfile.findOne({ userId: reqItem.toUserId._id })
-            .select('subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
+            .select('jobId subjects experience fee location area fullAddress verificationPhone isVerified verificationStatus board preferredTime daysPerWeek degreeDetails teachingMode')
             .lean();
         } else if (reqItem.toUserId.role === 'student') {
           toProfile = await StudentProfile.findOne({ userId: reqItem.toUserId._id })
-            .select('subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
+            .select('jobId subjectsNeeded classOrExam budget location area fullAddress preferredTiming preferences')
             .lean();
         }
       }
@@ -742,6 +896,33 @@ router.get('/connections', async (req, res) => {
         toProfile
       };
     }));
+
+    // Filter by direction / match type if specified
+    if (direction && direction !== 'all') {
+      if (direction === 'student_to_teacher_accepted') {
+        enriched = enriched.filter(item => 
+          item.status === 'accepted' && 
+          item.fromUserId?.role === 'student' && 
+          item.toUserId?.role === 'teacher'
+        );
+      } else if (direction === 'teacher_to_student_accepted') {
+        enriched = enriched.filter(item => 
+          item.status === 'accepted' && 
+          item.fromUserId?.role === 'teacher' && 
+          item.toUserId?.role === 'student'
+        );
+      } else if (direction === 'student_to_teacher') {
+        enriched = enriched.filter(item => 
+          item.fromUserId?.role === 'student' && 
+          item.toUserId?.role === 'teacher'
+        );
+      } else if (direction === 'teacher_to_student') {
+        enriched = enriched.filter(item => 
+          item.fromUserId?.role === 'teacher' && 
+          item.toUserId?.role === 'student'
+        );
+      }
+    }
 
     // Filter by district if specified
     if (district && district !== 'all') {
@@ -762,9 +943,11 @@ router.get('/connections', async (req, res) => {
         const fromName = item.fromUserId?.name || '';
         const fromEmail = item.fromUserId?.email || '';
         const fromPhone = item.fromUserId?.phone || item.fromProfile?.verificationPhone || '';
+        const fromJobId = item.fromProfile?.jobId || '';
         const toName = item.toUserId?.name || '';
         const toEmail = item.toUserId?.email || '';
         const toPhone = item.toUserId?.phone || item.toProfile?.verificationPhone || '';
+        const toJobId = item.toProfile?.jobId || '';
         const notes = item.adminNotes || '';
         const message = item.message || '';
         const fromArea = item.fromProfile?.area || '';
@@ -774,9 +957,11 @@ router.get('/connections', async (req, res) => {
           reg.test(fromName) ||
           reg.test(fromEmail) ||
           reg.test(fromPhone) ||
+          reg.test(fromJobId) ||
           reg.test(toName) ||
           reg.test(toEmail) ||
           reg.test(toPhone) ||
+          reg.test(toJobId) ||
           reg.test(notes) ||
           reg.test(message) ||
           reg.test(fromArea) ||
@@ -786,9 +971,30 @@ router.get('/connections', async (req, res) => {
     }
 
     // Aggregate statistics across all requests
-    const allRequests = await ConnectionRequest.find().lean();
+    const allRequests = await ConnectionRequest.find()
+      .populate('fromUserId', 'role')
+      .populate('toUserId', 'role')
+      .lean();
+
+    const studentToTeacherAccepted = allRequests.filter(r => 
+      r.status === 'accepted' && 
+      r.fromUserId?.role === 'student' && 
+      r.toUserId?.role === 'teacher'
+    ).length;
+
+    const teacherToStudentAccepted = allRequests.filter(r => 
+      r.status === 'accepted' && 
+      r.fromUserId?.role === 'teacher' && 
+      r.toUserId?.role === 'student'
+    ).length;
+
+    const totalAccepted = allRequests.filter(r => r.status === 'accepted').length;
+
     const metrics = {
       totalRequests: allRequests.length,
+      studentToTeacherAccepted,
+      teacherToStudentAccepted,
+      totalAccepted,
       newLeads: allRequests.filter(r => (r.adminLeadStatus || 'new') === 'new').length,
       inProgress: allRequests.filter(r => ['contacted_sender', 'contacted_target', 'both_contacted'].includes(r.adminLeadStatus)).length,
       dealsFinalized: allRequests.filter(r => ['deal_finalized', 'commission_received'].includes(r.adminLeadStatus)).length,
@@ -897,7 +1103,7 @@ router.delete('/connections/:id', async (req, res) => {
 // GET /api/admin/unread-counts - Get unviewed counts for Connections, Verifications, Reports, and Queries
 router.get('/unread-counts', async (req, res) => {
   try {
-    const [connectionsCount, verificationsCount, reportsCount, queriesCount] = await Promise.all([
+    const [connectionsCount, teacherVerificationsCount, studentVerificationsCount, reportsCount, queriesCount] = await Promise.all([
       ConnectionRequest.countDocuments({ viewedByAdmin: false }),
       TeacherProfile.countDocuments({
         viewedByAdmin: false,
@@ -907,10 +1113,18 @@ router.get('/unread-counts', async (req, res) => {
           { verificationStatus: 'unverified', isVerified: false }
         ]
       }),
+      StudentProfile.countDocuments({
+        viewedByAdmin: false,
+        $or: [
+          { verificationStatus: 'pending' },
+          { contactVerified: true, isVerified: false }
+        ]
+      }),
       Report.countDocuments({ viewedByAdmin: false, status: 'pending' }),
       Query.countDocuments({ adminViewed: false })
     ]);
 
+    const verificationsCount = teacherVerificationsCount + studentVerificationsCount;
     const total = connectionsCount + verificationsCount + reportsCount + queriesCount;
 
     res.json({
@@ -933,7 +1147,10 @@ router.post('/mark-viewed', async (req, res) => {
     if (section === 'connections') {
       await ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
     } else if (section === 'verifications') {
-      await TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
+      await Promise.all([
+        TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
+        StudentProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } })
+      ]);
     } else if (section === 'reports') {
       await Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
     } else if (section === 'queries') {
@@ -942,6 +1159,7 @@ router.post('/mark-viewed', async (req, res) => {
       await Promise.all([
         ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
+        StudentProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } })
       ]);

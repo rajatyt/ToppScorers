@@ -90,6 +90,8 @@ app.use('/api/connections', connectionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/blocks', blockRoutes);
 app.use('/api/saved', savedRoutes);
+app.use('/api/admin/faqs', faqRoutes);
+app.use('/api/admin/widgets', widgetRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/widgets', widgetRoutes);
 app.use('/api/faqs', faqRoutes);

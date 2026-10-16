@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (identifier, password) => {
     try {
       sessionStorage.removeItem('verification_prompt_dismissed');
+      sessionStorage.removeItem('student_verification_prompt_dismissed');
       const res = await api.post('/auth/login', { email: identifier, password });
       setUser(res.data.user);
       setProfile(res.data.profile || null);
@@ -48,6 +49,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (data) => {
     try {
       sessionStorage.removeItem('verification_prompt_dismissed');
+      sessionStorage.removeItem('student_verification_prompt_dismissed');
       const res = await api.post('/auth/signup', data);
       setUser(res.data.user);
       setProfile(res.data.profile || null);
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }) => {
   const googleAuth = async ({ credential, role, city, area }) => {
     try {
       sessionStorage.removeItem('verification_prompt_dismissed');
+      sessionStorage.removeItem('student_verification_prompt_dismissed');
       const res = await api.post('/auth/google', { credential, role, city, area });
       if (!res.data.isNewUser && !res.data.needsLocation && res.data.user) {
         setUser(res.data.user);
@@ -74,11 +77,13 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       sessionStorage.removeItem('verification_prompt_dismissed');
+      sessionStorage.removeItem('student_verification_prompt_dismissed');
       await api.post('/auth/logout');
       setUser(null);
       setProfile(null);
     } catch (err) {
       sessionStorage.removeItem('verification_prompt_dismissed');
+      sessionStorage.removeItem('student_verification_prompt_dismissed');
       setUser(null);
       setProfile(null);
       toast.error('Failed to logout');

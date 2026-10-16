@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FiLink, FiPhone, FiMail, FiMessageSquare, FiCopy, FiCheckCircle, 
   FiClock, FiDollarSign, FiSearch, FiFilter, FiTrash2, FiSave, 
   FiRefreshCw, FiAlertCircle, FiUser, FiMapPin, FiExternalLink,
-  FiChevronRight, FiCheck, FiX
+  FiChevronRight, FiCheck, FiX, FiCheckSquare, FiZap
 } from 'react-icons/fi';
 import { FaWhatsapp, FaHandshake, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
 import axios from '../../api/axios';
@@ -29,10 +30,16 @@ const COMMISSION_STATUS_OPTIONS = [
   { value: 'lost', label: '❌ Lost / Cancelled', color: 'bg-rose-50 text-rose-700 border-rose-200' }
 ];
 
-const ConnectionManager = () => {
+const ConnectionManager = ({ defaultSection = 'all' }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState(defaultSection);
   const [connections, setConnections] = useState([]);
   const [metrics, setMetrics] = useState({
     totalRequests: 0,
+    studentToTeacherAccepted: 0,
+    teacherToStudentAccepted: 0,
+    totalAccepted: 0,
     newLeads: 0,
     inProgress: 0,
     dealsFinalized: 0,
@@ -50,12 +57,17 @@ const ConnectionManager = () => {
   const [editForms, setEditForms] = useState({});
   const { markAdminSectionViewed } = useContext(NotificationContext);
 
+  useEffect(() => {
+    setActiveSection(defaultSection);
+  }, [defaultSection]);
+
   const fetchConnections = async () => {
     try {
       setLoading(true);
       // Mark viewed so WhatsApp/Instagram badge clears instantly
       markAdminSectionViewed('connections');
       const params = {};
+      if (activeSection !== 'all') params.direction = activeSection;
       if (filterLeadStatus !== 'all') params.leadStatus = filterLeadStatus;
       if (filterCommissionStatus !== 'all') params.commissionStatus = filterCommissionStatus;
       if (filterDistrict !== 'all') params.district = filterDistrict;
@@ -66,6 +78,9 @@ const ConnectionManager = () => {
       setConnections(items);
       setMetrics(res.data?.metrics || {
         totalRequests: 0,
+        studentToTeacherAccepted: 0,
+        teacherToStudentAccepted: 0,
+        totalAccepted: 0,
         newLeads: 0,
         inProgress: 0,
         dealsFinalized: 0,
@@ -95,7 +110,7 @@ const ConnectionManager = () => {
 
   useEffect(() => {
     fetchConnections();
-  }, [filterLeadStatus, filterCommissionStatus, filterDistrict]);
+  }, [filterLeadStatus, filterCommissionStatus, filterDistrict, activeSection]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -199,24 +214,164 @@ const ConnectionManager = () => {
         </div>
       </div>
 
+      {/* 2 Dedicated Accepted Sections Switcher Tabs + Pipeline Tab */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Section 1: Student -> Teacher Accepted */}
+          <button
+            onClick={() => {
+              setActiveSection('student_to_teacher_accepted');
+              navigate('/admin/connections/student-to-teacher');
+            }}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeSection === 'student_to_teacher_accepted'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+            }`}
+          >
+            <FaUserGraduate className={activeSection === 'student_to_teacher_accepted' ? 'text-white' : 'text-emerald-600'} />
+            <span>Student ➔ Teacher Accepted</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+              activeSection === 'student_to_teacher_accepted'
+                ? 'bg-white/25 text-white'
+                : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {metrics.studentToTeacherAccepted || 0}
+            </span>
+          </button>
+
+          {/* Section 2: Teacher -> Student Approved */}
+          <button
+            onClick={() => {
+              setActiveSection('teacher_to_student_accepted');
+              navigate('/admin/connections/teacher-to-student');
+            }}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeSection === 'teacher_to_student_accepted'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-2 ring-blue-500/30'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+            }`}
+          >
+            <FaChalkboardTeacher className={activeSection === 'teacher_to_student_accepted' ? 'text-white' : 'text-blue-600'} />
+            <span>Teacher ➔ Student Approved</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+              activeSection === 'teacher_to_student_accepted'
+                ? 'bg-white/25 text-white'
+                : 'bg-blue-100 text-blue-800'
+            }`}>
+              {metrics.teacherToStudentAccepted || 0}
+            </span>
+          </button>
+
+          {/* All Pipeline Leads */}
+          <button
+            onClick={() => {
+              setActiveSection('all');
+              navigate('/admin/connections');
+            }}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeSection === 'all'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+            }`}
+          >
+            <FiLink className={activeSection === 'all' ? 'text-white' : 'text-slate-500'} />
+            <span>All Pipeline Leads</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+              activeSection === 'all'
+                ? 'bg-white/25 text-white'
+                : 'bg-slate-100 text-slate-800'
+            }`}>
+              {metrics.totalRequests || 0}
+            </span>
+          </button>
+        </div>
+
+        <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-amber-50 rounded-xl border border-amber-200/80 text-amber-800 text-[11px] font-semibold">
+          <FaHandshake className="text-amber-600" />
+          <span>Confirmed Matches: {metrics.totalAccepted || 0}</span>
+        </div>
+      </div>
+
+      {/* Contextual Section Explanation Banner */}
+      {activeSection === 'student_to_teacher_accepted' && (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/60 p-4 rounded-2xl border border-emerald-200 text-emerald-950 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
+              <FaUserGraduate />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-200/60 px-2 py-0.5 rounded">
+                  Confirmed Section 1
+                </span>
+                <h3 className="font-extrabold text-base text-emerald-900">
+                  Student Approached ➔ Teacher Accepted
+                </h3>
+              </div>
+              <p className="text-xs text-emerald-800 mt-1 max-w-3xl leading-relaxed">
+                The student took the initiative to connect with the teacher, and the teacher accepted the request. 
+                Both parties have agreed to connect! Call them now to confirm tuition timings, finalize class terms, and collect your <strong>50% 1st-month platform commission</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 shrink-0">
+            <div className="bg-white/80 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-emerald-200/80 text-center">
+              <div className="text-xl font-black text-emerald-700">{metrics.studentToTeacherAccepted || 0}</div>
+              <div className="text-[10px] font-bold text-emerald-600 uppercase">Confirmed Matches</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'teacher_to_student_accepted' && (
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100/60 p-4 rounded-2xl border border-blue-200 text-blue-950 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
+              <FaChalkboardTeacher />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-200/60 px-2 py-0.5 rounded">
+                  Confirmed Section 2
+                </span>
+                <h3 className="font-extrabold text-base text-blue-900">
+                  Teacher Approached ➔ Student Approved
+                </h3>
+              </div>
+              <p className="text-xs text-blue-800 mt-1 max-w-3xl leading-relaxed">
+                The teacher proactively reached out to the student for tuition, and the student approved the request. 
+                The student is waiting for class commencement! Call both parties, schedule the first trial class, and settle the <strong>50% platform commission</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 shrink-0">
+            <div className="bg-white/80 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-blue-200/80 text-center">
+              <div className="text-xl font-black text-blue-700">{metrics.teacherToStudentAccepted || 0}</div>
+              <div className="text-[10px] font-bold text-blue-600 uppercase">Approved Matches</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">
-            <span>Total Inquiries</span>
-            <FiLink className="text-blue-500" />
+            <span>Student ➔ Teacher</span>
+            <FaUserGraduate className="text-emerald-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.totalRequests}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Platform requests sent</div>
+          <div className="text-2xl font-black text-emerald-600">{metrics.studentToTeacherAccepted}</div>
+          <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">Accepted matches</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">
-            <span>Actionable Leads</span>
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+            <span>Teacher ➔ Student</span>
+            <FaChalkboardTeacher className="text-blue-500" />
           </div>
-          <div className="text-2xl font-black text-blue-600">{metrics.newLeads}</div>
-          <div className="text-[11px] text-blue-500 font-semibold mt-0.5">Awaiting first call</div>
+          <div className="text-2xl font-black text-blue-600">{metrics.teacherToStudentAccepted}</div>
+          <div className="text-[11px] text-blue-500 font-semibold mt-0.5">Approved matches</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
@@ -370,10 +525,30 @@ const ConnectionManager = () => {
               >
                 {/* Header bar of the Lead Card */}
                 <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-900 text-white">
-                      {isSenderStudent ? 'Student ➔ Teacher Request' : 'Teacher ➔ Student Request'}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Direction & Acceptance Indicator */}
+                    {isSenderStudent && item.status === 'accepted' ? (
+                      <span className="text-xs font-bold px-3 py-1 rounded-lg bg-emerald-700 text-white flex items-center space-x-1.5 shadow-xs">
+                        <FaUserGraduate className="text-xs" />
+                        <span>Student Initiated</span>
+                        <span>➔</span>
+                        <FaChalkboardTeacher className="text-xs" />
+                        <span>Teacher Accepted ✅</span>
+                      </span>
+                    ) : !isSenderStudent && item.status === 'accepted' ? (
+                      <span className="text-xs font-bold px-3 py-1 rounded-lg bg-blue-700 text-white flex items-center space-x-1.5 shadow-xs">
+                        <FaChalkboardTeacher className="text-xs" />
+                        <span>Teacher Initiated</span>
+                        <span>➔</span>
+                        <FaUserGraduate className="text-xs" />
+                        <span>Student Approved ✅</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-900 text-white">
+                        {isSenderStudent ? 'Student ➔ Teacher Inquiry' : 'Teacher ➔ Student Inquiry'}
+                      </span>
+                    )}
+
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${leadStatusMeta.color}`}>
                       {leadStatusMeta.label}
                     </span>
@@ -406,13 +581,24 @@ const ConnectionManager = () => {
                           {sender.name ? sender.name.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div>
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                             <span className="text-base font-extrabold text-slate-900">{sender.name || 'Anonymous User'}</span>
                             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                               sender.role === 'teacher' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
                             }`}>
                               {sender.role || 'Sender'}
                             </span>
+                            {senderProfile.jobId && (
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(senderProfile.jobId, 'Job ID')}
+                                className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-mono font-bold border border-slate-300 transition-colors"
+                                title="Click to copy Job ID"
+                              >
+                                <span>ID: {senderProfile.jobId}</span>
+                                <FiCopy size={10} />
+                              </button>
+                            )}
                           </div>
                           <div className="text-xs text-slate-500 flex items-center space-x-1 mt-0.5">
                             <FiMapPin size={12} className="text-slate-400" />
@@ -529,13 +715,24 @@ const ConnectionManager = () => {
                           {recipient.name ? recipient.name.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div>
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                             <span className="text-base font-extrabold text-slate-900">{recipient.name || 'Anonymous User'}</span>
                             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                               recipient.role === 'teacher' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
                             }`}>
                               {recipient.role || 'Recipient'}
                             </span>
+                            {recipientProfile.jobId && (
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(recipientProfile.jobId, 'Job ID')}
+                                className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-mono font-bold border border-slate-300 transition-colors"
+                                title="Click to copy Job ID"
+                              >
+                                <span>ID: {recipientProfile.jobId}</span>
+                                <FiCopy size={10} />
+                              </button>
+                            )}
                           </div>
                           <div className="text-xs text-slate-500 flex items-center space-x-1 mt-0.5">
                             <FiMapPin size={12} className="text-slate-400" />
@@ -684,18 +881,31 @@ const ConnectionManager = () => {
                       </div>
                     </div>
 
-                    {/* Commission Expected */}
+                    {/* Commission Expected with 1-click 50% Auto Calculator */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Our Commission Expected (₹)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">
+                          Our Commission (₹)
+                        </label>
+                        {Number(editForm.tuitionFee) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleEditChange(item._id, 'commissionExpected', Math.round(Number(editForm.tuitionFee) * 0.5))}
+                            className="text-[10px] font-extrabold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-1.5 py-0.5 rounded transition-colors flex items-center space-x-0.5 shadow-2xs"
+                            title="Set to 50% first-month platform commission"
+                          >
+                            <FiZap size={10} />
+                            <span>50% (₹{Math.round(Number(editForm.tuitionFee) * 0.5)})</span>
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
                         <input
                           type="number"
                           value={editForm.commissionExpected}
                           onChange={(e) => handleEditChange(item._id, 'commissionExpected', e.target.value)}
-                          placeholder="e.g. 1000"
+                          placeholder="e.g. 2000"
                           className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>

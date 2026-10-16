@@ -43,7 +43,7 @@ const Signup = () => {
       return;
     }
     if (!formData.district) {
-      toast.error('Please select your District (Fatehpur)');
+      toast.error('Please select your District (Prayagraj)');
       return;
     }
     if (!formData.area) {

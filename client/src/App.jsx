@@ -25,6 +25,7 @@ import TeacherVerification from './pages/TeacherVerification';
 import TeacherProfileEdit from './pages/TeacherProfileEdit';
 import SupportQueries from './pages/SupportQueries';
 import TeacherVerificationPromptModal from './components/TeacherVerificationPromptModal';
+import StudentVerificationPromptModal from './components/StudentVerificationPromptModal';
 import WelcomeRoleModal from './components/WelcomeRoleModal';
 
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
@@ -50,6 +51,7 @@ function AppContent() {
     <div className="flex flex-col min-h-screen">
       {!isAdminRoute && <Navbar />}
       {!isAdminRoute && <TeacherVerificationPromptModal />}
+      {!isAdminRoute && <StudentVerificationPromptModal />}
       {!isAdminRoute && <WelcomeRoleModal />}
       <main className="flex-grow">
         <Routes>

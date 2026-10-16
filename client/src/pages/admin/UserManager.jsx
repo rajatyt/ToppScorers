@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   FiSearch, FiEye, FiTrash2, FiX, FiUser, 
   FiMail, FiPhone, FiCalendar, FiShield, 
@@ -31,7 +30,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 const UserManager = () => {
-  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);

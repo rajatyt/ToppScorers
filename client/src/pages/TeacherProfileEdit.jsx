@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/axios';
@@ -8,7 +8,7 @@ import {
   FaUserEdit, FaGraduationCap, FaAward, FaCheckCircle,
   FaShieldAlt, FaSave, FaArrowLeft, FaClock, FaExclamationTriangle,
   FaBook, FaBuilding, FaVideo, FaUserFriends, FaMapMarkerAlt,
-  FaBookOpen, FaRupeeSign
+  FaBookOpen, FaRupeeSign, FaCamera
 } from 'react-icons/fa';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
@@ -16,10 +16,24 @@ const TeacherProfileEdit = () => {
   const { t } = useTranslation();
   const { user, profile, refreshUser, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('qualifications'); // 'qualifications' | 'general'
+  const searchTab = new URLSearchParams(location.search).get('tab');
+  const [activeTab, setActiveTab] = useState(
+    searchTab === 'qualifications' ? 'qualifications' : 'general'
+  );
+
+  useEffect(() => {
+    const tabParam = new URLSearchParams(location.search).get('tab');
+    if (tabParam === 'qualifications' || tabParam === 'general') {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState('');
+  const fileInputRef = useRef(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -33,8 +47,8 @@ const TeacherProfileEdit = () => {
     feePeriod: 'monthly',
     availability: 'Flexible (Morning / Evening)',
     area: '',
-    city: '',
-    state: '',
+    city: DISTRICTS[0] || 'Prayagraj',
+    state: 'Uttar Pradesh',
     pincode: '',
 
     // Requirement Details
@@ -78,6 +92,11 @@ const TeacherProfileEdit = () => {
         const u = res.data.user || {};
         const p = res.data.profile || {};
 
+        const rawCity = p.location?.city || '';
+        const activeCity = DISTRICTS.includes(rawCity) ? rawCity : (DISTRICTS[0] || 'Prayagraj');
+        const activeArea = (DISTRICT_AREAS[activeCity] || []).includes(p.area) ? p.area : '';
+
+        setCurrentPhoto(p.profilePhotoUrl || u.avatar || '');
         setFormData({
           name: u.name || '',
           phone: u.phone || '',
@@ -88,9 +107,9 @@ const TeacherProfileEdit = () => {
           feeAmount: p.fee?.amount || 3000,
           feePeriod: p.fee?.period || 'monthly',
           availability: p.availability || 'Flexible (Morning / Evening)',
-          area: p.area || '',
-          city: p.location?.city || '',
-          state: p.location?.state || '',
+          area: activeArea,
+          city: activeCity,
+          state: p.location?.state || 'Uttar Pradesh',
           pincode: p.location?.pincode || '',
 
           // Requirement Details
@@ -125,6 +144,35 @@ const TeacherProfileEdit = () => {
 
     loadData();
   }, [isAuthenticated, user?.role, navigate]);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, JPEG, WEBP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB limit');
+      return;
+    }
+    const uploadData = new FormData();
+    uploadData.append('photo', file);
+    setUploadingPhoto(true);
+    try {
+      const res = await api.post('/teachers/profile/photo', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const newUrl = res.data.profilePhotoUrl;
+      setCurrentPhoto(newUrl);
+      if (refreshUser) await refreshUser();
+      toast.success(res.data.message || 'Profile photo updated successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -227,11 +275,41 @@ const TeacherProfileEdit = () => {
           </Link>
         </div>
 
-        {/* Profile Card Header with Verified Badge */}
+        {/* Profile Card Header with Verified Badge & Photo Upload */}
         <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-2xl flex items-center justify-center shadow-md flex-shrink-0">
-              {formData.name?.charAt(0) || user?.name?.charAt(0) || 'T'}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handlePhotoChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <div className="relative group flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-md overflow-hidden border-2 border-slate-200">
+                {currentPhoto ? (
+                  <img
+                    src={currentPhoto}
+                    alt={formData.name || 'Profile'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{formData.name?.charAt(0) || user?.name?.charAt(0) || 'T'}</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                title="Upload / Change profile photo"
+                className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {uploadingPhoto ? (
+                  <div className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FaCamera className="text-xs" />
+                )}
+              </button>
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -283,28 +361,31 @@ const TeacherProfileEdit = () => {
         <div className="flex border-b border-slate-200 mb-6 gap-2">
           <button
             type="button"
-            onClick={() => setActiveTab('qualifications')}
-            className={`px-5 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center space-x-2 border-b-2 ${
-              activeTab === 'qualifications'
-                ? 'border-amber-500 text-amber-700 bg-white'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
+            onClick={() => setActiveTab('general')}
+            className={`px-5 py-3 rounded-t-2xl font-extrabold text-xs sm:text-sm transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
+              activeTab === 'general'
+                ? 'border-amber-500 text-amber-900 bg-white shadow-2xs'
+                : 'border-transparent text-slate-500 hover:text-slate-900 bg-slate-50/60'
             }`}
           >
-            <FaGraduationCap size={15} />
-            <span>{t('profileEdit.tabQualifications')}</span>
+            <FaUserEdit size={16} className={activeTab === 'general' ? 'text-amber-600' : 'text-slate-400'} />
+            <span>1. {t('profileEdit.tabGeneral')}</span>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 hidden sm:inline-block">
+              Bio & Rates
+            </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('general')}
-            className={`px-5 py-2.5 rounded-t-2xl font-bold text-xs transition-all flex items-center space-x-2 border-b-2 ${
-              activeTab === 'general'
-                ? 'border-amber-500 text-amber-700 bg-white'
-                : 'border-transparent text-slate-500 hover:text-slate-900'
+            onClick={() => setActiveTab('qualifications')}
+            className={`px-5 py-3 rounded-t-2xl font-extrabold text-xs sm:text-sm transition-all flex items-center space-x-2 border-b-2 cursor-pointer ${
+              activeTab === 'qualifications'
+                ? 'border-amber-500 text-amber-900 bg-white shadow-2xs'
+                : 'border-transparent text-slate-500 hover:text-slate-900 bg-slate-50/60'
             }`}
           >
-            <FaUserEdit size={14} />
-            <span>{t('profileEdit.tabGeneral')}</span>
+            <FaGraduationCap size={16} className={activeTab === 'qualifications' ? 'text-amber-600' : 'text-slate-400'} />
+            <span>2. {t('profileEdit.tabQualifications')}</span>
           </button>
         </div>
 
@@ -666,44 +747,7 @@ const TeacherProfileEdit = () => {
                 </div>
               </div>
 
-              {/* Subjects & Exam Targets */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100">
-                  {t('profileEdit.subjectsTaught')} & {t('profileEdit.targetExams')}
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.subjectsTaught')}
-                    </label>
-                    <input
-                      type="text"
-                      name="subjects"
-                      value={formData.subjects}
-                      onChange={handleChange}
-                      placeholder="e.g. Physics, Mathematics, Chemistry"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      {t('profileEdit.targetExams')}
-                    </label>
-                    <input
-                      type="text"
-                      name="exams"
-                      value={formData.exams}
-                      onChange={handleChange}
-                      placeholder="e.g. JEE Main, NEET, CBSE Class 12"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Requirement Details */}
+              {/* Tutoring Specialization & Preferences */}
               <div className="bg-white rounded-2xl border-2 border-amber-400/40 p-5 sm:p-6 shadow-xs relative overflow-hidden">
                 <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-amber-100">
                   <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold">
@@ -711,10 +755,10 @@ const TeacherProfileEdit = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
-                      Requirement Details
+                      Tutoring Specialization & Preferences
                     </h3>
                     <p className="text-[11px] text-slate-500">
-                      Complete your tutoring requirement specifications for students and parents
+                      Specify your subjects, boards, target entrance exams, fees, and schedule
                     </p>
                   </div>
                 </div>
@@ -723,16 +767,33 @@ const TeacherProfileEdit = () => {
                   {/* Subjects */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Subjects
+                      {t('profileEdit.subjectsTaught', 'Subjects Taught')}
                     </label>
                     <input
                       type="text"
                       name="subjects"
                       value={formData.subjects}
                       onChange={handleChange}
-                      placeholder="e.g. All Subjects, or Mathematics, Physics"
+                      placeholder="e.g. Mathematics, Physics, Chemistry"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">Comma-separated (e.g. Physics, Chemistry, Mathematics)</p>
+                  </div>
+
+                  {/* Target Exams */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      {t('profileEdit.targetExams', 'Target Exams Specialized')}
+                    </label>
+                    <input
+                      type="text"
+                      name="exams"
+                      value={formData.exams}
+                      onChange={handleChange}
+                      placeholder="e.g. JEE Main, NEET, CBSE Class 12, Foundation"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Comma-separated target entrance/board exams</p>
                   </div>
 
                   {/* Board */}
@@ -880,7 +941,7 @@ const TeacherProfileEdit = () => {
               <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
                 <h3 className="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center">
                   <FaMapMarkerAlt className="text-amber-500 mr-2" />
-                  Location & Coverage (Fatehpur)
+                  Location & Coverage (Prayagraj)
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -891,7 +952,7 @@ const TeacherProfileEdit = () => {
                     </label>
                     <select
                       name="city"
-                      value={formData.city}
+                      value={formData.city || DISTRICTS[0] || 'Prayagraj'}
                       onChange={(e) => {
                         setFormData({
                           ...formData,
@@ -901,7 +962,6 @@ const TeacherProfileEdit = () => {
                       }}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-semibold"
                     >
-                      <option value="">Select District</option>
                       {DISTRICTS.map((d) => (
                         <option key={d} value={d}>{d}</option>
                       ))}

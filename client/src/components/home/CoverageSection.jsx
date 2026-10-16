@@ -1,78 +1,394 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  HiOutlineAcademicCap, 
-  HiOutlineBeaker, 
-  HiOutlineBookOpen, 
-  HiOutlineLibrary, 
-  HiOutlineOfficeBuilding, 
-  HiOutlineBriefcase, 
-  HiOutlineCalculator, 
-  HiOutlineBadgeCheck 
-} from 'react-icons/hi';
+  FaGraduationCap, 
+  FaAtom, 
+  FaStethoscope, 
+  FaBookReader, 
+  FaLandmark, 
+  FaCogs, 
+  FaUniversity, 
+  FaLaptopCode, 
+  FaAward, 
+  FaUserTie,
+  FaArrowRight
+} from 'react-icons/fa';
 import SectionDivider from '../common/SectionDivider';
 
 const CoverageSection = () => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('all');
 
-  const cards = [
-    { key: 'jee', title: t('coverage.jee'), desc: t('coverage.jeeDesc'), icon: <HiOutlineLibrary className="w-8 h-8" /> },
-    { key: 'neet', title: t('coverage.neet'), desc: t('coverage.neetDesc'), icon: <HiOutlineBeaker className="w-8 h-8" /> },
-    { key: 'foundation', title: t('coverage.foundation'), desc: t('coverage.foundationDesc'), icon: <HiOutlineBookOpen className="w-8 h-8" /> },
-    { key: 'board', title: t('coverage.board'), desc: t('coverage.boardDesc'), icon: <HiOutlineOfficeBuilding className="w-8 h-8" /> },
-    { key: 'cuet', title: t('coverage.cuet'), desc: t('coverage.cuetDesc'), icon: <HiOutlineAcademicCap className="w-8 h-8" /> },
-    { key: 'upsc', title: t('coverage.upsc'), desc: t('coverage.upscDesc'), icon: <HiOutlineBriefcase className="w-8 h-8" /> },
-    { key: 'ca', title: t('coverage.ca'), desc: t('coverage.caDesc'), icon: <HiOutlineCalculator className="w-8 h-8" /> },
-    { key: 'cat', title: t('coverage.cat'), desc: t('coverage.catDesc'), icon: <HiOutlineBadgeCheck className="w-8 h-8" /> },
+  const categories = [
+    { id: 'all', label: t('coverage.tabAll', 'All Streams') },
+    { id: 'school', label: t('coverage.tabSchool', 'School Level (1–12)') },
+    { id: 'entrance', label: t('coverage.tabEntrance', 'Engineering & Medical') },
+    { id: 'competitive', label: t('coverage.tabCompetitive', 'Govt & Competitive') },
+    { id: 'skills', label: t('coverage.tabSkills', 'Skills & Tech') },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
+  const coverageItems = [
+    // 1. School Level
+    {
+      id: 'school-lower',
+      category: 'school',
+      icon: <FaBookReader className="w-6 h-6 text-emerald-600" />,
+      theme: 'emerald',
+      title: t('coverage.schoolLowerTitle', 'Lower & Middle School (Classes 1–10)'),
+      badge: t('coverage.schoolLowerBadge', 'Classes 1–10'),
+      desc: t('coverage.schoolLowerDesc', 'Build robust conceptual clarity and homework mastery in Maths, Science (Physics, Chemistry, Biology), and Social Science for growing young minds.'),
+      subjects: ['Mathematics', 'Science (Physics, Chem, Bio)', 'Social Science', 'English', 'Mental Math'],
+      searchQuery: 'Mathematics'
+    },
+    {
+      id: 'school-senior',
+      category: 'school',
+      icon: <FaGraduationCap className="w-6 h-6 text-emerald-600" />,
+      theme: 'emerald',
+      title: t('coverage.schoolSeniorTitle', 'Senior Secondary (Classes 11–12)'),
+      badge: t('coverage.schoolSeniorBadge', 'Classes 11–12'),
+      desc: t('coverage.schoolSeniorDesc', 'Deep-dive subject specialization across Physics, Chemistry, Maths, and Biology (PCMB) with rigorous problem solving.'),
+      subjects: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'Accountancy', 'Economics'],
+      searchQuery: 'Physics'
+    },
+    {
+      id: 'school-board',
+      category: 'school',
+      icon: <FaAward className="w-6 h-6 text-teal-600" />,
+      theme: 'teal',
+      title: t('coverage.schoolBoardTitle', 'Board Exam Preparation'),
+      badge: t('coverage.schoolBoardBadge', 'Boards 10th & 12th'),
+      desc: t('coverage.schoolBoardDesc', 'Tailored scoring strategies, previous years question papers, and answer presentation techniques for CBSE and state boards.'),
+      subjects: ['CBSE Board', 'ICSE / ISC', 'State Boards', 'Sample Papers', 'Board PYQs'],
+      searchQuery: 'CBSE'
+    },
+    {
+      id: 'school-foundation',
+      category: 'school',
+      icon: <FaUniversity className="w-6 h-6 text-emerald-700" />,
+      theme: 'emerald',
+      title: t('coverage.schoolFoundationTitle', 'Foundation Courses (Classes 6–10)'),
+      badge: t('coverage.schoolFoundationBadge', 'Early Advantage'),
+      desc: t('coverage.schoolFoundationDesc', 'Early conceptual foundation courses bridging school syllabus to JEE, NEET, Olympiads, and NTSE analytical benchmarks.'),
+      subjects: ['JEE Foundation', 'NEET Foundation', 'Olympiads (IMO/NSO)', 'NTSE', 'Aptitude & Logic'],
+      searchQuery: 'Foundation'
+    },
+
+    // 2. Engineering & Medical Entrance
+    {
+      id: 'entrance-jee',
+      category: 'entrance',
+      icon: <FaAtom className="w-6 h-6 text-amber-600" />,
+      theme: 'amber',
+      title: t('coverage.jeeTitle', 'JEE Main & Advanced'),
+      badge: t('coverage.jeeBadge', 'Engineering Entrance'),
+      desc: t('coverage.jeeDesc', 'Comprehensive coaching in Physics, Chemistry, and Advanced Mathematics for IIT, NIT, and IIIT admissions.'),
+      subjects: ['Physics (Mechanics, Electrodynamics)', 'Chemistry (Organic, Inorganic, Physical)', 'Mathematics (Calculus, Algebra, Coordinate)'],
+      searchQuery: 'JEE'
+    },
+    {
+      id: 'entrance-neet',
+      category: 'entrance',
+      icon: <FaStethoscope className="w-6 h-6 text-rose-600" />,
+      theme: 'rose',
+      title: t('coverage.neetTitle', 'NEET (UG) Medical Entrance'),
+      badge: t('coverage.neetBadge', 'Medical Entrance'),
+      desc: t('coverage.neetDesc', 'Intensive line-by-line NCERT mastery across Physics, Chemistry, and Biology (Botany and Zoology) for top medical colleges.'),
+      subjects: ['Physics', 'Chemistry', 'Biology (Botany)', 'Biology (Zoology)', 'NCERT line-by-line', 'Mock Test Drills'],
+      searchQuery: 'NEET'
+    },
+    {
+      id: 'entrance-other',
+      category: 'entrance',
+      icon: <FaUniversity className="w-6 h-6 text-orange-600" />,
+      theme: 'orange',
+      title: t('coverage.otherEntranceTitle', 'BITSAT, CUET & State CETs'),
+      badge: t('coverage.otherEntranceBadge', 'Top Universities'),
+      desc: t('coverage.otherEntranceDesc', 'Specialized training for BITSAT, CUET (Central Universities), and state CETs (MHT-CET, KCET, WBJEE) for premier college admissions.'),
+      subjects: ['BITSAT', 'CUET UG', 'State CETs', 'VITEEE', 'General Aptitude', 'Domain Specific'],
+      searchQuery: 'CUET'
+    },
+
+    // 3. Government & Competitive Exams
+    {
+      id: 'comp-upsc',
+      category: 'competitive',
+      icon: <FaLandmark className="w-6 h-6 text-indigo-600" />,
+      theme: 'indigo',
+      title: t('coverage.upscTitle', 'UPSC Civil Services & State PCS'),
+      badge: t('coverage.upscBadge', 'IAS / IPS / PCS'),
+      desc: t('coverage.upscDesc', 'Comprehensive GS mentorship covering History, Polity, Geography, Economics, Current Affairs, and CSAT answer writing.'),
+      subjects: ['Indian History', 'Polity & Constitution', 'Geography', 'Economics', 'Current Affairs', 'CSAT & Mains Prep'],
+      searchQuery: 'UPSC'
+    },
+    {
+      id: 'comp-gate',
+      category: 'competitive',
+      icon: <FaCogs className="w-6 h-6 text-blue-600" />,
+      theme: 'blue',
+      title: t('coverage.gateTitle', 'GATE & Engineering Exams'),
+      badge: t('coverage.gateBadge', 'PSUs & Masters'),
+      desc: t('coverage.gateDesc', 'Advanced engineering coaching for GATE, ESE, and PSU technical tests across Mechanical, Civil, Electrical, and CS streams.'),
+      subjects: ['Mechanical', 'Civil', 'Electrical', 'Computer Science & IT', 'Engineering Maths', 'PSU Tests'],
+      searchQuery: 'GATE'
+    },
+    {
+      id: 'comp-ssc',
+      category: 'competitive',
+      icon: <FaUserTie className="w-6 h-6 text-violet-600" />,
+      theme: 'violet',
+      title: t('coverage.sscBankingTitle', 'SSC, Banking, Railways & Defence'),
+      badge: t('coverage.sscBankingBadge', 'Government Careers'),
+      desc: t('coverage.sscBankingDesc', 'Speed shortcuts and high-accuracy training in Quantitative Aptitude, Logical Reasoning, English, and General Awareness.'),
+      subjects: ['Quantitative Aptitude', 'Logical Reasoning', 'General English', 'General Awareness (GA)', 'SSC CGL/CHSL', 'IBPS/SBI PO & Clerk'],
+      searchQuery: 'SSC'
+    },
+    {
+      id: 'comp-teaching',
+      category: 'competitive',
+      icon: <FaGraduationCap className="w-6 h-6 text-purple-600" />,
+      theme: 'purple',
+      title: t('coverage.teachingLawTitle', 'Teaching & Professional Entrances'),
+      badge: t('coverage.teachingLawBadge', 'CTET & Professional'),
+      desc: t('coverage.teachingLawDesc', 'Pedagogy and concepts for CTET, State TETs, plus law entrance (CLAT), commerce, and management preparation.'),
+      subjects: ['CTET & State TETs', 'Child Pedagogy', 'CLAT (Law Entrance)', 'CAT / Management', 'CA / CS Foundation'],
+      searchQuery: 'Teaching'
+    },
+
+    // 4. Skills & Tech
+    {
+      id: 'skills-tech',
+      category: 'skills',
+      icon: <FaLaptopCode className="w-6 h-6 text-cyan-600" />,
+      theme: 'cyan',
+      title: t('coverage.skillsTitle', 'Skill & Upskilling Courses'),
+      badge: t('coverage.skillsBadge', 'Future-Ready Skills'),
+      desc: t('coverage.skillsDesc', 'Hands-on coding, programming (Python, Java, C++, Web Dev), Data Science, AI basics, and digital upskilling mentorship.'),
+      subjects: ['Python & Java', 'C++ & DSA', 'Web Development', 'Data Science & SQL', 'AI & Machine Learning', 'Practical Mentorship'],
+      searchQuery: 'Coding'
+    }
+  ];
+
+  const filteredItems = activeTab === 'all' 
+    ? coverageItems 
+    : coverageItems.filter(item => item.category === activeTab);
+
+  const getThemeClasses = (theme) => {
+    switch (theme) {
+      case 'emerald':
+        return {
+          border: 'border-l-emerald-500 hover:border-emerald-500',
+          badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200/80',
+          iconBg: 'bg-emerald-50',
+          chipBg: 'bg-emerald-50/80 text-emerald-950 border-emerald-200/60 hover:bg-emerald-100',
+          btnBg: 'hover:text-emerald-700'
+        };
+      case 'teal':
+        return {
+          border: 'border-l-teal-500 hover:border-teal-500',
+          badgeBg: 'bg-teal-50 text-teal-800 border-teal-200/80',
+          iconBg: 'bg-teal-50',
+          chipBg: 'bg-teal-50/80 text-teal-950 border-teal-200/60 hover:bg-teal-100',
+          btnBg: 'hover:text-teal-700'
+        };
+      case 'amber':
+        return {
+          border: 'border-l-amber-500 hover:border-amber-500',
+          badgeBg: 'bg-amber-50 text-amber-900 border-amber-200/80',
+          iconBg: 'bg-amber-50',
+          chipBg: 'bg-amber-50/80 text-amber-950 border-amber-200/60 hover:bg-amber-100',
+          btnBg: 'hover:text-amber-700'
+        };
+      case 'rose':
+        return {
+          border: 'border-l-rose-500 hover:border-rose-500',
+          badgeBg: 'bg-rose-50 text-rose-800 border-rose-200/80',
+          iconBg: 'bg-rose-50',
+          chipBg: 'bg-rose-50/80 text-rose-950 border-rose-200/60 hover:bg-rose-100',
+          btnBg: 'hover:text-rose-700'
+        };
+      case 'orange':
+        return {
+          border: 'border-l-orange-500 hover:border-orange-500',
+          badgeBg: 'bg-orange-50 text-orange-900 border-orange-200/80',
+          iconBg: 'bg-orange-50',
+          chipBg: 'bg-orange-50/80 text-orange-950 border-orange-200/60 hover:bg-orange-100',
+          btnBg: 'hover:text-orange-700'
+        };
+      case 'indigo':
+        return {
+          border: 'border-l-indigo-500 hover:border-indigo-500',
+          badgeBg: 'bg-indigo-50 text-indigo-900 border-indigo-200/80',
+          iconBg: 'bg-indigo-50',
+          chipBg: 'bg-indigo-50/80 text-indigo-950 border-indigo-200/60 hover:bg-indigo-100',
+          btnBg: 'hover:text-indigo-700'
+        };
+      case 'blue':
+        return {
+          border: 'border-l-blue-500 hover:border-blue-500',
+          badgeBg: 'bg-blue-50 text-blue-900 border-blue-200/80',
+          iconBg: 'bg-blue-50',
+          chipBg: 'bg-blue-50/80 text-blue-950 border-blue-200/60 hover:bg-blue-100',
+          btnBg: 'hover:text-blue-700'
+        };
+      case 'violet':
+      case 'purple':
+        return {
+          border: 'border-l-violet-500 hover:border-violet-500',
+          badgeBg: 'bg-violet-50 text-violet-900 border-violet-200/80',
+          iconBg: 'bg-violet-50',
+          chipBg: 'bg-violet-50/80 text-violet-950 border-violet-200/60 hover:bg-violet-100',
+          btnBg: 'hover:text-violet-700'
+        };
+      case 'cyan':
+      default:
+        return {
+          border: 'border-l-cyan-500 hover:border-cyan-500',
+          badgeBg: 'bg-cyan-50 text-cyan-900 border-cyan-200/80',
+          iconBg: 'bg-cyan-50',
+          chipBg: 'bg-cyan-50/80 text-cyan-950 border-cyan-200/60 hover:bg-cyan-100',
+          btnBg: 'hover:text-cyan-700'
+        };
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
-
   return (
-    <section className="relative pt-16 pb-28 sm:pb-36 bg-slate-50 text-slate-900 overflow-hidden">
-      <div className="container mx-auto px-6 md:px-12 lg:px-24">
-        <div className="text-center mb-16">
-          <p className="text-amber-600 font-bold tracking-wider uppercase text-sm mb-2">{t('coverage.eyebrow')}</p>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('coverage.heading')}</h2>
-          <p className="text-slate-500 max-w-2xl mx-auto">{t('coverage.subtext')}</p>
+    <section className="relative pt-20 pb-32 sm:pb-36 bg-slate-50 text-slate-900 overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6 md:px-12 lg:px-20 max-w-7xl">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 font-extrabold text-xs uppercase tracking-wider mb-3 shadow-2xs border border-amber-200/60">
+            <FaGraduationCap className="text-amber-600 text-sm" />
+            {t('coverage.eyebrow', 'Academic & Exam Coverage')}
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
+            {t('coverage.heading', 'Subjects You Can Teach & Learn on ToppScorers')}
+          </h2>
+          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+            {t('coverage.subtext', 'From foundational school classes (1–12) to engineering, medical, government civil services, and tech skills — connect with verified educators across every subject that matters.')}
+          </p>
+
+          {/* Interactive Filter Tabs */}
+          <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+            {categories.map((cat) => {
+              const isActive = activeTab === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  type="button"
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-2xs ${
+                    isActive
+                      ? 'bg-slate-900 text-white shadow-md scale-105'
+                      : 'bg-white text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {/* Coverage Cards Grid */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {cards.map((card) => (
-            <motion.div 
-              key={card.key} 
-              variants={itemVariants}
-              className="bg-white rounded-xl shadow border-l-4 border-amber-500 p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col h-full"
-            >
-              <div className="text-amber-500 mb-4 p-3 bg-amber-50 rounded-full w-fit">
-                {card.icon}
-              </div>
-              <h3 className="text-xl font-bold mb-2">{card.title}</h3>
-              <p className="text-slate-500 text-sm flex-grow">{card.desc}</p>
-            </motion.div>
-          ))}
+          <AnimatePresence>
+            {filteredItems.map((item) => {
+              const theme = getThemeClasses(item.theme);
+              return (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  key={item.id}
+                  className={`bg-white rounded-2xl shadow-xs hover:shadow-xl border border-slate-200/80 border-l-4 ${theme.border} p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 group`}
+                >
+                  <div>
+                    {/* Top Row: Icon & Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-3 rounded-2xl ${theme.iconBg} shadow-2xs`}>
+                        {item.icon}
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${theme.badgeBg}`}>
+                        {item.badge}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2 leading-snug group-hover:text-amber-600 transition-colors">
+                      {item.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
+                      {item.desc}
+                    </p>
+
+                    {/* Subject Pills */}
+                    <div className="space-y-1.5 mb-5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                        Core Subjects & Topics:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.subjects.map((sub, i) => (
+                          <span
+                            key={i}
+                            className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-colors shadow-2xs ${theme.chipBg}`}
+                          >
+                            {sub}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </motion.div>
+
+        {/* Bottom Banner: Call to Action */}
+        <div className="mt-14 bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 max-w-xl text-center md:text-left">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2">
+              Ready to Begin?
+            </span>
+            <h3 className="text-xl sm:text-2xl font-black mb-2">
+              Learn or Teach Any Subject with 1-on-1 Focus
+            </h3>
+            <p className="text-slate-300 text-xs sm:text-sm">
+              Connect directly with verified educators or post your learning requirement with zero commission.
+            </p>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-3 flex-wrap justify-center">
+            <Link
+              to="/teachers"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-2"
+            >
+              <span>{t('coverage.findTutors', 'Find Verified Tutors')}</span>
+              <FaArrowRight size={12} />
+            </Link>
+            <Link
+              to="/students"
+              className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm transition-all"
+            >
+              <span>{t('coverage.findStudents', 'Find Tuition Students')}</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* Modern Wave Section Divider Transition into WhyTeacherHunt */}
+      {/* Modern Wave Section Divider Transition */}
       <SectionDivider 
         toColor="text-slate-900" 
         accentColor="rgba(245, 158, 11, 0.2)" 

@@ -8,22 +8,27 @@ import { toast } from 'react-hot-toast';
 import {
   FaUserGraduate, FaChalkboardTeacher, FaInbox, FaPaperPlane,
   FaCheckCircle, FaEye, FaBookmark, FaCog, FaShieldAlt, FaArrowRight,
-  FaClock, FaExclamationTriangle, FaAward
+  FaClock, FaExclamationTriangle, FaAward, FaUserFriends, FaMapMarkerAlt,
+  FaQuoteLeft, FaUserEdit, FaQuestionCircle
 } from 'react-icons/fa';
-import { FiSliders, FiUser, FiLock, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiSliders, FiUser, FiLock, FiRefreshCw } from 'react-icons/fi';
 import { NotificationContext } from '../context/NotificationContext';
-import EarningsCalculator from '../components/teacher/EarningsCalculator';
 
 const Dashboard = () => {
   const { t } = useTranslation();
   const { user, profile, isAuthenticated } = useContext(AuthContext);
-  const { unreadCounts } = useContext(NotificationContext);
+  const { unreadCounts, fetchUnreadCounts, markSectionViewed } = useContext(NotificationContext);
   const navigate = useNavigate();
 
   const [metrics, setMetrics] = useState(null);
   const [savedProfiles, setSavedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [copiedJobId, setCopiedJobId] = useState(false);
+
+  // Connection management state
+  const [activeTab, setActiveTab] = useState('incoming'); // 'incoming' | 'outgoing' | 'accepted'
+  const [requests, setRequests] = useState([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -50,6 +55,55 @@ const Dashboard = () => {
     loadData();
   }, [isAuthenticated, user?.role, navigate]);
 
+  const fetchConnections = async (tab = activeTab) => {
+    setConnectionsLoading(true);
+    try {
+      const res = await api.get('/connections', { params: { type: tab } });
+      setRequests(res.data || []);
+    } catch (err) {
+      // Quiet fail if initial network glitch
+    } finally {
+      setConnectionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConnections(activeTab);
+      if (markSectionViewed) {
+        markSectionViewed(activeTab);
+      }
+    }
+  }, [activeTab, isAuthenticated]);
+
+  useEffect(() => {
+    if (window.location.hash) {
+      const hash = window.location.hash.replace('#', '');
+      if (['incoming', 'outgoing', 'accepted'].includes(hash)) {
+        setActiveTab(hash);
+      }
+      setTimeout(() => {
+        document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
+  }, []);
+
+  const handleConnectionAction = async (requestId, action) => {
+    setActionLoading(requestId);
+    try {
+      const res = await api.patch(`/connections/${requestId}`, { action });
+      toast.success(res.data.message || `Request ${action}ed`);
+      await fetchConnections(activeTab);
+      const metricsRes = await api.get('/auth/dashboard-metrics');
+      setMetrics(metricsRes.data);
+      if (fetchUnreadCounts) fetchUnreadCounts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || `Failed to ${action} request`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -60,7 +114,6 @@ const Dashboard = () => {
 
   const isTeacher = user?.role === 'teacher';
   const completeness = metrics?.completeness || 40;
-  const myJobId = metrics?.jobId || profile?.jobId;
 
   return (
     <div className="min-h-screen bg-slate-50/70 py-8 px-4 sm:px-6 lg:px-8">
@@ -73,27 +126,6 @@ const Dashboard = () => {
                 <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
                   {isTeacher ? 'Teacher Control Center' : 'Student Control Center'}
                 </span>
-                {myJobId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(myJobId);
-                      setCopiedJobId(true);
-                      toast.success(`Copied Job ID: ${myJobId}`);
-                      setTimeout(() => setCopiedJobId(false), 2000);
-                    }}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30 font-mono text-xs font-bold transition-all cursor-pointer shadow-2xs backdrop-blur-xs"
-                    title="Click to copy your Job ID"
-                  >
-                    <span className="text-slate-300 font-sans text-[10px] uppercase font-bold tracking-wider">YOUR JOB ID:</span>
-                    <span className="text-amber-300">{myJobId}</span>
-                    {copiedJobId ? (
-                      <FiCheck className="text-emerald-400 text-xs ml-0.5" />
-                    ) : (
-                      <FiCopy className="text-slate-300 text-xs ml-0.5" />
-                    )}
-                  </button>
-                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Welcome back, {user?.name}!
@@ -130,6 +162,324 @@ const Dashboard = () => {
               <p className="text-[11px] text-slate-400 mt-2">
                 Tip: Complete your subjects, exam targets, and address details to receive more tuition matches.
               </p>
+            )}
+          </div>
+        </div>
+
+        {/* Student Verification Status Banner */}
+        {!isTeacher && (
+          <div className="mb-8">
+            {profile?.isVerified || profile?.verificationStatus === 'verified' ? (
+              <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs font-bold">
+                    <FaCheckCircle size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+                        Genuine {profile?.studentOrParentRole === 'parent' ? 'Parent' : 'Student'} Account Verified ✅
+                      </span>
+                      <span className="text-[10px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
+                        Full Access
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-900/90 mt-0.5">
+                      Your phone ({profile?.verificationPhone || user?.phone}) and email are verified. You can freely send direct tuition requests to verified teachers.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-student-verification-modal'))}
+                  className="px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Update Contact
+                </button>
+              </div>
+            ) : profile?.verificationStatus === 'pending' ? (
+              <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-500/10 via-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs font-bold">
+                    <FaClock size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-black text-blue-950 uppercase tracking-wider">
+                        Contact Verification Under Admin Review
+                      </span>
+                      <span className="text-[10px] font-bold bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full">
+                        Pending
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-900/90 mt-0.5">
+                      Our team will contact you shortly via call/WhatsApp ({profile?.verificationPhone || user?.phone}) to verify your requirement. Direct teacher outreach unlocks as soon as approved.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-student-verification-modal'))}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                >
+                  Edit Contact Info
+                </button>
+              </div>
+            ) : profile?.verificationStatus === 'rejected' ? (
+              <div className="p-4 sm:p-5 bg-gradient-to-r from-rose-500/10 via-rose-50 to-pink-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs font-bold">
+                    <FaExclamationTriangle size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-black text-rose-950 uppercase tracking-wider">
+                        Verification Needs Attention
+                      </span>
+                      <span className="text-[10px] font-bold bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full">
+                        Action Needed
+                      </span>
+                    </div>
+                    <p className="text-xs text-rose-900/90 mt-0.5">
+                      {profile?.rejectionReason || 'Contact details could not be verified.'} Update your phone/email to request admin verification.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-student-verification-modal'))}
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                >
+                  Resubmit Details
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center flex-shrink-0 shadow-xs font-bold">
+                    <FaShieldAlt size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                        Account Unverified — Teacher Outreach Locked
+                      </span>
+                      <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                        Action Required
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-900/90 mt-0.5">
+                      Confirm your contact phone & email so teachers know you are a genuine parent or student. Sending requests to teachers will unlock upon verification.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-student-verification-modal'))}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  Verify Contact Now
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Quick Actions Launchpad */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚡ Quick Actions</span>
+            </h2>
+            <span className="text-[11px] text-slate-400 font-medium">Fast navigation shortcuts</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {isTeacher ? (
+              <>
+                <Link
+                  to="/students"
+                  className="group bg-white hover:bg-emerald-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaUserGraduate size={18} />
+                    </div>
+                    <FaArrowRight className="text-slate-300 group-hover:text-emerald-600 transition-colors text-xs" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-950">
+                      Browse Students
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Explore tuition openings
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/profile?tab=general"
+                  className="group bg-white hover:bg-amber-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-amber-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaUserEdit size={18} />
+                    </div>
+                    <FaArrowRight className="text-slate-300 group-hover:text-amber-600 transition-colors text-xs" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-amber-950">
+                      Personal & Tutoring Info
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Name, subjects, fees & bio
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/verification"
+                  className="group bg-white hover:bg-indigo-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-indigo-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaAward size={18} />
+                    </div>
+                    <FaArrowRight className="text-slate-300 group-hover:text-indigo-600 transition-colors text-xs" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-indigo-950">
+                      Verification
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Badges & credentials
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/queries"
+                  className="group bg-white hover:bg-sky-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-sky-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaQuestionCircle size={18} />
+                    </div>
+                    {unreadCounts?.queries > 0 ? (
+                      <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                        {unreadCounts.queries}
+                      </span>
+                    ) : (
+                      <FaArrowRight className="text-slate-300 group-hover:text-sky-600 transition-colors text-xs" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-sky-950 flex items-center gap-1.5">
+                      <span>Help & Doubts</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Admin tuition support
+                    </div>
+                  </div>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/teachers"
+                  className="group bg-white hover:bg-amber-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-amber-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaChalkboardTeacher size={18} />
+                    </div>
+                    <FaArrowRight className="text-slate-300 group-hover:text-amber-600 transition-colors text-xs" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-amber-950">
+                      Find Teachers
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Search verified tutors
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/settings"
+                  className="group bg-white hover:bg-emerald-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaUserEdit size={18} />
+                    </div>
+                    <FaArrowRight className="text-slate-300 group-hover:text-emerald-600 transition-colors text-xs" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-950">
+                      Edit Profile
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Class & target subjects
+                    </div>
+                  </div>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-student-verification-modal'))}
+                  className="group text-left bg-white hover:bg-emerald-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaShieldAlt size={18} />
+                    </div>
+                    {(profile?.isVerified || profile?.contactVerified) ? (
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        Verified ✅
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                        Verify Now
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-950">
+                      Contact Verification
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      {(profile?.isVerified || profile?.contactVerified) ? 'Genuine family verified' : 'Confirm phone & email'}
+                    </div>
+                  </div>
+                </button>
+
+                <Link
+                  to="/queries"
+                  className="group bg-white hover:bg-sky-50/50 p-4 rounded-2xl border border-slate-200/80 hover:border-sky-400 transition-all shadow-xs hover:shadow-md flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <FaQuestionCircle size={18} />
+                    </div>
+                    {unreadCounts?.queries > 0 ? (
+                      <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                        {unreadCounts.queries}
+                      </span>
+                    ) : (
+                      <FaArrowRight className="text-slate-300 group-hover:text-sky-600 transition-colors text-xs" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-900 text-sm group-hover:text-sky-950 flex items-center gap-1.5">
+                      <span>Help & Doubts</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Admin tuition support
+                    </div>
+                  </div>
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -268,33 +618,76 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Clickable to toggle and focus connection tabs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {isTeacher ? (
             <>
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-3">
-                  <FaInbox size={18} />
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('incoming');
+                  markSectionViewed?.('incoming');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'incoming'
+                    ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-amber-300 hover:bg-slate-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <FaInbox size={18} />
+                  </div>
+                  {unreadCounts?.incoming > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                      NEW
+                    </span>
+                  )}
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.incomingCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Incoming Requests</div>
-              </div>
+              </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('outgoing');
+                  markSectionViewed?.('outgoing');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'outgoing'
+                    ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-blue-300 hover:bg-slate-50/50'
+                }`}
+              >
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
                   <FaPaperPlane size={16} />
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.sentCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Sent Requests</div>
-              </div>
+              </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('accepted');
+                  markSectionViewed?.('accepted');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'accepted'
+                    ? 'bg-emerald-50/90 border-emerald-400 ring-2 ring-emerald-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-emerald-300 hover:bg-slate-50/50'
+                }`}
+              >
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
                   <FaCheckCircle size={18} />
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.acceptedCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Connected</div>
-              </div>
+              </button>
 
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
                 <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
@@ -314,101 +707,407 @@ const Dashboard = () => {
                 <div className="text-xs text-slate-500 font-medium">Saved Teachers</div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('outgoing');
+                  markSectionViewed?.('outgoing');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'outgoing'
+                    ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-blue-300 hover:bg-slate-50/50'
+                }`}
+              >
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
                   <FaPaperPlane size={16} />
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.sentCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Sent Requests</div>
-              </div>
+              </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
-                  <FaInbox size={18} />
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('incoming');
+                  markSectionViewed?.('incoming');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'incoming'
+                    ? 'bg-purple-50/90 border-purple-400 ring-2 ring-purple-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-purple-300 hover:bg-slate-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                    <FaInbox size={18} />
+                  </div>
+                  {unreadCounts?.incoming > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                      NEW
+                    </span>
+                  )}
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.incomingCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Incoming Requests</div>
-              </div>
+              </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('accepted');
+                  markSectionViewed?.('accepted');
+                  document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`text-left p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'accepted'
+                    ? 'bg-emerald-50/90 border-emerald-400 ring-2 ring-emerald-400/40 shadow-sm'
+                    : 'bg-white border-slate-200/80 hover:border-emerald-300 hover:bg-slate-50/50'
+                }`}
+              >
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
                   <FaCheckCircle size={18} />
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900">{metrics?.acceptedCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Connected</div>
-              </div>
+              </button>
             </>
           )}
         </div>
 
-        {/* Teacher-Only Earnings Calculator */}
-        {isTeacher && (
-          <div className="mb-8">
-            <EarningsCalculator />
+        {/* Embedded Complete Connection Section */}
+        <div id="connections-section" className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs mb-8 scroll-mt-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px] uppercase tracking-wider">
+                  <FaUserFriends className="mr-1 text-amber-600" />
+                  Tuition Network & Direct Inquiries
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Connections & Tuition Inquiries
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isTeacher
+                  ? 'Manage direct tuition inquiries sent by students, review your applications, and track active tuitions.'
+                  : 'Manage outreach to verified educators, review incoming tutor proposals, and track active classes.'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fetchConnections(activeTab)}
+              disabled={connectionsLoading}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs font-bold text-slate-700 transition-all cursor-pointer shadow-2xs self-start sm:self-center disabled:opacity-50"
+              title="Refresh requests"
+            >
+              <FiRefreshCw className={`text-xs ${connectionsLoading ? 'animate-spin text-amber-600' : ''}`} />
+              <span>Refresh</span>
+            </button>
           </div>
-        )}
 
-        {/* Quick Shortcuts */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs mb-8">
-          <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link
-              to={isTeacher ? '/students' : '/teachers'}
-              className="p-4 rounded-2xl border border-slate-200/80 hover:border-amber-400 hover:bg-amber-50/40 flex items-center justify-between group transition-all"
+          {/* Segmented Tab Navigation */}
+          <div className="flex p-1.5 bg-slate-100/80 border border-slate-200/80 rounded-2xl my-6 shadow-2xs max-w-md">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('incoming');
+                markSectionViewed?.('incoming');
+              }}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer relative ${
+                activeTab === 'incoming'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
             >
-              <div>
-                <div className="font-bold text-slate-900 text-sm">
-                  {isTeacher ? 'Browse Students' : 'Find Teachers'}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {isTeacher ? 'View tuition openings' : 'Search verified tutors'}
-                </div>
-              </div>
-              <FaArrowRight className="text-slate-400 group-hover:text-amber-600 transition-colors" />
-            </Link>
+              <FaInbox size={13} className={activeTab === 'incoming' ? 'text-amber-400' : 'text-slate-400'} />
+              <span>Incoming</span>
+              {(unreadCounts?.incoming > 0 || (metrics?.incomingCount > 0 && activeTab !== 'incoming')) && (
+                <span className={`ml-1 px-1.5 py-0.2 text-[10px] font-black rounded-full shadow-xs ${
+                  unreadCounts?.incoming > 0
+                    ? 'bg-rose-500 text-white animate-pulse'
+                    : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {unreadCounts?.incoming || metrics?.incomingCount}
+                </span>
+              )}
+            </button>
 
-            <Link
-              to="/connections"
-              className="p-4 rounded-2xl border border-slate-200/80 hover:border-emerald-400 hover:bg-emerald-50/40 flex items-center justify-between group transition-all"
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('outgoing');
+                markSectionViewed?.('outgoing');
+              }}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer relative ${
+                activeTab === 'outgoing'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
             >
-              <div>
-                <div className="font-bold text-slate-900 text-sm">Connections & Requests</div>
-                <div className="text-xs text-slate-500">Respond to tuition requests</div>
-              </div>
-              <FaArrowRight className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
-            </Link>
+              <FaPaperPlane size={12} className={activeTab === 'outgoing' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>Sent</span>
+              {metrics?.sentCount > 0 && (
+                <span className={`ml-1 px-1.5 py-0.2 text-[10px] font-black rounded-full shadow-xs ${
+                  activeTab === 'outgoing' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {metrics?.sentCount}
+                </span>
+              )}
+            </button>
 
-            <Link
-              to="/queries"
-              className="p-4 rounded-2xl border border-slate-200/80 hover:border-sky-400 hover:bg-sky-50/40 flex items-center justify-between group transition-all"
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('accepted');
+                markSectionViewed?.('accepted');
+              }}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer relative ${
+                activeTab === 'accepted'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
             >
-              <div>
-                <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                  <span>Help & Doubts</span>
-                  {unreadCounts?.queries > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
-                      {unreadCounts.queries}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-slate-500">Ask admin doubts directly</div>
-              </div>
-              <FaArrowRight className="text-slate-400 group-hover:text-sky-600 transition-colors" />
-            </Link>
-
-            <Link
-              to="/settings"
-              className="p-4 rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:bg-blue-50/40 flex items-center justify-between group transition-all"
-            >
-              <div>
-                <div className="font-bold text-slate-900 text-sm">Privacy & Profile</div>
-                <div className="text-xs text-slate-500">Address & phone settings</div>
-              </div>
-              <FaArrowRight className="text-slate-400 group-hover:text-blue-600 transition-colors" />
-            </Link>
+              <FaCheckCircle size={13} className={activeTab === 'accepted' ? 'text-emerald-400' : 'text-slate-400'} />
+              <span>Connected</span>
+              {metrics?.acceptedCount > 0 && (
+                <span className={`ml-1 px-1.5 py-0.2 text-[10px] font-black rounded-full shadow-xs ${
+                  activeTab === 'accepted' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {metrics?.acceptedCount}
+                </span>
+              )}
+            </button>
           </div>
+
+          {/* Request List or Skeletons or Empty States */}
+          {connectionsLoading ? (
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 animate-pulse flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-200 flex-shrink-0" />
+                  <div className="flex-1 space-y-2.5">
+                    <div className="h-4 bg-slate-200 rounded-md w-1/4" />
+                    <div className="h-3 bg-slate-200 rounded-md w-1/2" />
+                    <div className="h-10 bg-slate-100 rounded-xl w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center rounded-2xl bg-slate-50/70 border border-dashed border-slate-300">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 shadow-2xs">
+                {activeTab === 'incoming' ? (
+                  <FaInbox size={22} />
+                ) : activeTab === 'outgoing' ? (
+                  <FaPaperPlane size={20} />
+                ) : (
+                  <FaCheckCircle size={22} />
+                )}
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                {activeTab === 'incoming'
+                  ? 'No incoming tuition requests right now'
+                  : activeTab === 'outgoing'
+                  ? 'No sent inquiries currently pending'
+                  : 'No active tuition connections yet'}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mb-5 leading-relaxed">
+                {activeTab === 'incoming'
+                  ? isTeacher
+                    ? 'When students or parents look for tuition in your subjects, their inquiries will appear right here with their learning goals and requirements.'
+                    : 'Educators who reach out regarding your learning requirements will be listed here for your approval.'
+                  : activeTab === 'outgoing'
+                  ? isTeacher
+                    ? 'You haven’t initiated connection requests to students yet. Check student tuition requirements in your area and reach out directly!'
+                    : 'You haven’t sent tuition requests to tutors yet. Find top-rated teachers near you and connect directly!'
+                  : 'Once a tuition request is accepted by both parties, ToppScorers physical tuition coordination activates and appears here.'}
+              </p>
+              <Link
+                to={isTeacher ? '/students' : '/teachers'}
+                className="inline-flex items-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+              >
+                <span>{isTeacher ? 'Browse Tuition Requirements' : 'Explore Verified Teachers'}</span>
+                <FaArrowRight className="ml-1.5 text-[10px]" />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {requests.map((item) => {
+                const otherUser = item.otherUser || {};
+                const otherProfile = item.otherProfile || {};
+                const isIncoming = item.isIncoming;
+                const isAccepted = item.status === 'accepted';
+                const isDeclined = item.status === 'declined';
+                const isPending = item.status === 'pending';
+                const isOtherTeacher = otherUser.role === 'teacher';
+                const profileId = otherProfile._id;
+                const profileUrl = isOtherTeacher ? `/teachers/${profileId}` : `/students/${profileId}`;
+                const subjectsList = isOtherTeacher ? otherProfile.subjects : otherProfile.subjectsNeeded;
+                const locationCity = otherProfile.location?.city || '';
+                const locationArea = otherProfile.area || '';
+                const fullLoc = [locationArea, locationCity].filter(Boolean).join(', ');
+
+                return (
+                  <div
+                    key={item._id}
+                    className="p-5 sm:p-6 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white transition-all shadow-2xs space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      {/* Left: Avatar + Identity */}
+                      <div className="flex items-start space-x-3.5 min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-lg flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden border border-slate-200">
+                          {otherUser.avatar ? (
+                            <img
+                              src={otherUser.avatar}
+                              alt={otherUser.name || 'Member'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>{otherUser.name?.charAt(0) || 'U'}</span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1 mb-1">
+                            <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                              {otherUser.name || 'Platform Member'}
+                            </span>
+
+                            {/* Role Badge */}
+                            {isOtherTeacher ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                                <FaChalkboardTeacher className="text-amber-600 text-[10px]" />
+                                Educator
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                <FaUserGraduate className="text-emerald-600 text-[10px]" />
+                                Student / Parent
+                              </span>
+                            )}
+
+                            {/* Status Badge */}
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                                isAccepted
+                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                  : isDeclined
+                                  ? 'bg-rose-100 text-rose-900 border border-rose-200'
+                                  : 'bg-amber-100 text-amber-900 border border-amber-200'
+                              }`}
+                            >
+                              {isAccepted ? 'Connected ✅' : isDeclined ? 'Declined' : 'Pending In Review'}
+                            </span>
+                          </div>
+
+                          {/* Location & Subjects */}
+                          <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                            {fullLoc && (
+                              <span className="inline-flex items-center text-slate-600 font-medium">
+                                <FaMapMarkerAlt className="text-amber-500 mr-1 text-[11px]" />
+                                {fullLoc}
+                              </span>
+                            )}
+                            {item.createdAt && (
+                              <span className="text-[11px] text-slate-400">
+                                {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center space-x-2 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        {isIncoming && isPending && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleConnectionAction(item._id, 'decline')}
+                              disabled={actionLoading === item._id}
+                              className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Decline
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleConnectionAction(item._id, 'accept')}
+                              disabled={actionLoading === item._id}
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <FaCheckCircle className="text-xs" />
+                              <span>Accept & Connect</span>
+                            </button>
+                          </>
+                        )}
+
+                        {profileId && (
+                          <Link
+                            to={profileUrl}
+                            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 transition-colors shadow-2xs"
+                          >
+                            <span>Profile</span>
+                            <FaArrowRight className="text-[9px]" />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subjects pills if available */}
+                    {Array.isArray(subjectsList) && subjectsList.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">
+                          {isOtherTeacher ? 'Teaches:' : 'Subjects Needed:'}
+                        </span>
+                        {subjectsList.slice(0, 5).map((sub, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px] border border-slate-200/60"
+                          >
+                            {sub}
+                          </span>
+                        ))}
+                        {subjectsList.length > 5 && (
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            +{subjectsList.length - 5} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Message from sender */}
+                    {item.message && (
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 text-xs text-slate-700 leading-relaxed flex items-start gap-2 shadow-2xs">
+                        <FaQuoteLeft className="text-amber-400 text-xs mt-0.5 flex-shrink-0" />
+                        <span className="italic">{item.message}</span>
+                      </div>
+                    )}
+
+                    {/* Active Tuition Coordination Banner for Accepted Connections */}
+                    {isAccepted && (
+                      <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300/80 rounded-2xl text-xs text-emerald-950 shadow-2xs">
+                        <div className="flex items-center space-x-1.5 font-extrabold text-emerald-950 mb-1">
+                          <FaShieldAlt className="text-emerald-600 flex-shrink-0" size={14} />
+                          <span>ToppScorers Tuition Coordination Active</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 leading-relaxed">
+                          For security and privacy, phone numbers remain protected. Our verified ToppScorers coordinator will contact both you and <strong>{otherUser.name || 'this member'}</strong> to finalize class timings, arrange demo classes, and oversee physical tuitions.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Saved Teachers section for students */}

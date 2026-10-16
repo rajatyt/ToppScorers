@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   DndContext, closestCenter, KeyboardSensor, PointerSensor, 
   useSensor, useSensors 
@@ -11,8 +10,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { 
   FiMenu, FiEye, FiEyeOff, FiCheck, FiRefreshCw, 
-  FiExternalLink, FiTv, FiGrid, FiAward, FiUserCheck, 
-  FiBookOpen, FiHelpCircle, FiMessageCircle 
+  FiExternalLink, FiTv, FiGrid, FiAward, 
+  FiBookOpen, FiHelpCircle, FiMessageCircle, FiDollarSign 
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import axios from '../../api/axios';
@@ -37,17 +36,11 @@ const sectionMeta = {
     icon: <FiAward className="text-amber-500" />,
     badge: 'Value Proposition'
   },
-  forTeachers: { 
-    title: 'For Teachers Section', 
-    desc: 'Teacher value points, verified credentials CTA, profile registration link', 
-    icon: <FiBookOpen className="text-indigo-500" />,
-    badge: 'Teacher Onboarding'
-  },
-  forStudents: { 
-    title: 'For Students & Institutes Section', 
-    desc: 'Search verified teachers, demo lecture comparisons, contact tutors directly', 
-    icon: <FiUserCheck className="text-rose-500" />,
-    badge: 'Student Onboarding'
+  calculator: {
+    title: 'Earnings Calculator Section',
+    desc: 'Interactive tuition fee and student count income projection estimator',
+    icon: <FiDollarSign className="text-emerald-500" />,
+    badge: 'Teacher Earnings'
   },
   whatsapp: { 
     title: 'WhatsApp Community Section', 
@@ -154,7 +147,6 @@ const SortableItem = ({ id, item, onChangeVisibility }) => {
 };
 
 const WidgetManager = () => {
-  const { t } = useTranslation();
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -167,13 +159,14 @@ const WidgetManager = () => {
   const fetchWidgets = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/widgets');
+      const response = await axios.get('/admin/widgets');
       if (response.data && response.data.length > 0) {
         const sorted = [...response.data].sort((a, b) => a.order - b.order);
         setWidgets(sorted);
       }
     } catch (error) {
-      toast.error('Failed to load widget configurations');
+      console.error('Failed to load widgets:', error);
+      toast.error(error.response?.data?.message || 'Failed to load widget configurations');
     } finally {
       setLoading(false);
     }
@@ -202,10 +195,10 @@ const WidgetManager = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await axios.put('/widgets', widgets);
+      await axios.put('/admin/widgets', widgets);
       toast.success('Homepage widget layout saved successfully!');
     } catch (error) {
-      toast.error('Failed to update widgets layout');
+      toast.error(error.response?.data?.message || 'Failed to update widgets layout');
     } finally {
       setSaving(false);
     }

@@ -40,6 +40,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
     } catch (err) {
       if (err.response?.data?.verificationRequired) {
         setVerificationNotice({
+          role: err.response.data.verificationRole || 'teacher',
           message: err.response.data.message,
           status: err.response.data.verificationStatus || 'unverified'
         });
@@ -50,6 +51,8 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
       setLoading(false);
     }
   };
+
+  const isStudentNotice = verificationNotice?.role === 'student';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 overflow-y-auto animate-fadeInUp">
@@ -63,13 +66,13 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
 
         {verificationNotice ? (
           <div className="text-center py-2 space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+            <div className={`w-14 h-14 rounded-2xl ${isStudentNotice ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-600'} flex items-center justify-center mx-auto shadow-sm`}>
               <FaLock size={24} />
             </div>
 
             <div>
               <h3 className="text-lg font-extrabold text-slate-900">
-                Teacher Verification Required
+                {isStudentNotice ? 'Student / Parent Verification Required' : 'Teacher Verification Required'}
               </h3>
               <p className="text-xs text-slate-600 mt-2 leading-relaxed px-2">
                 {verificationNotice.message}
@@ -81,11 +84,14 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
                 ToppScorers Safety Policy:
               </div>
               <p className="text-[11px] leading-relaxed">
-                To prevent spam and protect students, teachers must verify their credentials (or submit details with NA) before initiating contact.
+                {isStudentNotice
+                  ? 'To prevent fake inquiries and protect teachers, students and parents must verify their phone & email before sending tuition requests.'
+                  : 'To prevent spam and protect students, teachers must verify their credentials before initiating contact.'}
               </p>
-              <p className="text-[11px] text-amber-800 font-semibold">
-                ✓ Students can still contact you anytime.<br />
-                ✓ Direct student requests unlock immediately upon admin verification.
+              <p className={`text-[11px] ${isStudentNotice ? 'text-emerald-800' : 'text-amber-800'} font-semibold`}>
+                {isStudentNotice
+                  ? '✓ Verified parents and students receive direct teacher connections.'
+                  : '✓ Direct student requests unlock immediately upon admin verification.'}
               </p>
             </div>
 
@@ -93,7 +99,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
               <button
                 type="button"
                 onClick={handleModalClose}
-                className="w-full sm:w-auto flex-1 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="w-full sm:w-auto flex-1 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -101,11 +107,23 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
                 type="button"
                 onClick={() => {
                   handleModalClose();
-                  navigate('/verification');
+                  if (isStudentNotice) {
+                    window.dispatchEvent(new CustomEvent('open-student-verification-modal'));
+                  } else {
+                    navigate('/verification');
+                  }
                 }}
-                className="w-full sm:w-auto flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center"
+                className={`w-full sm:w-auto flex-1 py-2.5 ${
+                  isStudentNotice
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
+                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950'
+                } font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center cursor-pointer`}
               >
-                {verificationNotice.status === 'pending' ? 'Check Status' : 'Get Verified Now'}
+                {verificationNotice.status === 'pending'
+                  ? 'Verification Under Review'
+                  : isStudentNotice
+                  ? 'Verify Details Now'
+                  : 'Get Verified Now'}
                 <FaArrowRight className="ml-1.5" />
               </button>
             </div>

@@ -12,7 +12,7 @@ import SystemSetting from '../models/SystemSetting.js';
 import { authenticate, optionalAuth, authorize } from '../middleware/auth.js';
 import { directoryLimiter, profileViewLimiter } from '../middleware/rateLimiter.js';
 import { serializeProfile } from '../utils/serializeProfile.js';
-import { validateUniquePhone } from '../utils/identityValidator.js';
+import { validateUniquePhone, validateUniqueEmail } from '../utils/identityValidator.js';
 
 const router = express.Router();
 
@@ -322,6 +322,82 @@ router.post('/profile/photo', authenticate, authorize('student'), upload.single(
     );
     await User.findByIdAndUpdate(req.user._id, { avatar: photoUrl });
     res.json({ message: 'Photo uploaded successfully', profilePhotoUrl: photoUrl });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/students/verification/verify-contact - Verify student/parent email and phone
+router.post('/verification/verify-contact', authenticate, authorize('student'), async (req, res) => {
+  try {
+    const { email, phone, studentOrParentRole, name } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Email address is required.' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ message: 'Contact phone number is required.' });
+    }
+
+    // Validate email
+    const emailValidation = await validateUniqueEmail(email, req.user._id);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
+
+    // Validate phone
+    const phoneValidation = await validateUniquePhone(phone, req.user._id, true);
+    if (!phoneValidation.isValid) {
+      return res.status(400).json({ message: phoneValidation.message });
+    }
+
+    // Update User
+    const userUpdate = {
+      phone: phoneValidation.phone,
+      email: emailValidation.email
+    };
+    if (name && name.trim()) {
+      userUpdate.name = name.trim();
+    }
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, userUpdate, { new: true });
+
+    // Update StudentProfile
+    let profile = await StudentProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      profile = await StudentProfile.create({ userId: req.user._id });
+    }
+
+    profile.verificationPhone = phoneValidation.phone;
+    profile.verificationEmail = emailValidation.email;
+    profile.studentOrParentRole = ['student', 'parent', 'guardian'].includes(studentOrParentRole)
+      ? studentOrParentRole
+      : 'student';
+    profile.isVerified = false;
+    profile.verificationStatus = 'pending';
+    profile.contactVerified = false;
+    profile.verificationSubmittedAt = new Date();
+    profile.rejectionReason = '';
+
+    await profile.save();
+
+    res.json({
+      message: 'Your contact details have been submitted for verification. Our team will verify your details shortly to unlock tutor outreach.',
+      user: updatedUser,
+      profile: serializeProfile(profile, updatedUser)
+    });
+  } catch (error) {
+    console.error('Error verifying student contact:', error);
+    res.status(500).json({ message: error.message || 'Server error while verifying contact details' });
+  }
+});
+
+// POST /api/students/verification/skip - Skip student verification for this session
+router.post('/verification/skip', authenticate, authorize('student'), async (req, res) => {
+  try {
+    res.json({
+      message: 'Student verification prompt skipped for this session.',
+      skipped: true
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,23 +1,27 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import {
   FaShieldAlt, FaMapMarkerAlt, FaUserEdit, FaTrashAlt,
-  FaCheck, FaExclamationTriangle, FaLock, FaPhoneAlt, FaEyeSlash
+  FaCheck, FaExclamationTriangle, FaLock, FaPhoneAlt, FaEyeSlash,
+  FaCamera
 } from 'react-icons/fa';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
 const Settings = () => {
   const { t } = useTranslation();
-  const { user, logout, isAuthenticated } = useContext(AuthContext);
+  const { user, refreshUser, logout, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('privacy'); // 'privacy' | 'profile' | 'security'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const fileInputRef = useRef(null);
 
   // Privacy toggles
   const [privacy, setPrivacy] = useState({
@@ -65,12 +69,17 @@ const Settings = () => {
           });
         }
 
+        const rawCity = p.location?.city || '';
+        const activeCity = DISTRICTS.includes(rawCity) ? rawCity : (DISTRICTS[0] || 'Prayagraj');
+        const activeArea = (DISTRICT_AREAS[activeCity] || []).includes(p.area) ? p.area : '';
+
+        setPhotoUrl(p.profilePhotoUrl || u.avatar || '');
         setProfileData({
           name: u.name || '',
           phone: u.phone || '',
           fullAddress: p.fullAddress || '',
-          area: p.area || '',
-          city: p.location?.city || '',
+          area: activeArea,
+          city: activeCity,
           pincode: p.location?.pincode || '',
           feeAmount: p.fee?.amount || 2000,
           budgetMax: p.budget?.max || 5000,
@@ -88,6 +97,36 @@ const Settings = () => {
 
     loadProfile();
   }, [isAuthenticated, navigate]);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, JPEG, WEBP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB limit');
+      return;
+    }
+    const uploadData = new FormData();
+    uploadData.append('photo', file);
+    setUploadingPhoto(true);
+    try {
+      const endpoint = isTeacher ? '/teachers/profile/photo' : '/students/profile/photo';
+      const res = await api.post(endpoint, uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const newUrl = res.data.profilePhotoUrl;
+      setPhotoUrl(newUrl);
+      if (refreshUser) await refreshUser();
+      toast.success(res.data.message || 'Profile photo updated successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handlePrivacyToggle = async (key, val) => {
     const updated = { ...privacy, [key]: val };
@@ -197,17 +236,27 @@ const Settings = () => {
             <span>Privacy & Address</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
-              activeTab === 'profile'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FaUserEdit size={13} />
-            <span>Edit Profile</span>
-          </button>
+          {isTeacher ? (
+            <Link
+              to="/profile?tab=general"
+              className="flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+            >
+              <FaUserEdit size={13} />
+              <span>Personal & Tutoring Info ↗</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
+                activeTab === 'profile'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FaUserEdit size={13} />
+              <span>Edit Profile</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('security')}
@@ -299,7 +348,85 @@ const Settings = () => {
 
         {/* TAB 2: Edit Profile */}
         {activeTab === 'profile' && (
-          <form onSubmit={handleProfileSave} className="space-y-6">
+          isTeacher ? (
+            <div className="bg-white rounded-3xl border-2 border-amber-400/40 p-8 sm:p-10 shadow-xs text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <FaUserEdit size={28} />
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                Educator Personal & Tutoring Info
+              </h2>
+              <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                All teacher profile details (Name, Profile Photo, Bio, Subjects Taught, Board, Tuition Modes, Rates & Availability) are managed on your dedicated Educator Profile page.
+              </p>
+              <div className="pt-2">
+                <Link
+                  to="/profile?tab=general"
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all hover:scale-105"
+                >
+                  <FaUserEdit className="mr-2" />
+                  Open Personal & Tutoring Info Editor
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleProfileSave} className="space-y-6">
+            {/* Profile Photo Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <div className="flex flex-col sm:flex-row items-center gap-5">
+                <div className="relative group flex-shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-md overflow-hidden border-2 border-slate-200">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={profileData.name || 'Profile'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{profileData.name?.charAt(0) || user?.name?.charAt(0) || 'U'}</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    title="Upload / Change profile photo"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {uploadingPhoto ? (
+                      <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FaCamera className="text-xs" />
+                    )}
+                  </button>
+                </div>
+                <div className="text-center sm:text-left flex-1">
+                  <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                    Profile Photo
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-3 max-w-md">
+                    Upload a clear profile picture (JPG, PNG, or WEBP up to 5MB). Having a real picture increases engagement and credibility on your profile.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <FaCamera className="mr-2 text-amber-500 text-xs" />
+                    {uploadingPhoto ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Upload Photo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-4">
               <h2 className="text-base font-extrabold text-slate-900 mb-2">
                 Personal & Contact Info
@@ -355,11 +482,10 @@ const Settings = () => {
                     District
                   </label>
                   <select
-                    value={profileData.city}
+                    value={profileData.city || DISTRICTS[0] || 'Prayagraj'}
                     onChange={(e) => setProfileData({ ...profileData, city: e.target.value, area: '' })}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 font-medium"
                   >
-                    <option value="">Select District</option>
                     {DISTRICTS.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
@@ -437,7 +563,8 @@ const Settings = () => {
               </div>
             </div>
           </form>
-        )}
+        )
+      )}
 
         {/* TAB 3: DPDP Compliance & Account Deletion */}
         {activeTab === 'security' && (

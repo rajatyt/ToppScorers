@@ -11,7 +11,10 @@ import {
 export const authenticate = async (req, res, next) => {
   const isAdminRoute = req.originalUrl?.startsWith('/api/admin') || 
                        req.originalUrl?.startsWith('/api/auth/admin') || 
-                       req.headers['x-auth-scope'] === 'admin';
+                       req.originalUrl?.startsWith('/api/faqs/all') ||
+                       req.headers['x-auth-scope'] === 'admin' ||
+                       Boolean(req.headers['x-admin-token']) ||
+                       Boolean(req.cookies?.adminAccessToken || req.cookies?.adminToken);
 
   const clearCookiesForScope = (response) => {
     if (isAdminRoute) {
@@ -29,14 +32,18 @@ export const authenticate = async (req, res, next) => {
       accessToken = req.headers['x-admin-token'] ||
                     (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null) ||
                     req.cookies?.adminAccessToken ||
+                    req.cookies?.adminToken ||
                     req.cookies?.accessToken ||
                     req.cookies?.token;
       refreshToken = req.cookies?.adminRefreshToken || req.cookies?.refreshToken;
     } else {
       accessToken = req.cookies?.accessToken || 
                     req.cookies?.token || 
-                    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
-      refreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'];
+                    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null) ||
+                    req.cookies?.adminAccessToken ||
+                    req.cookies?.adminToken ||
+                    req.headers['x-admin-token'];
+      refreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'] || req.cookies?.adminRefreshToken;
     }
 
     // 1. Try verifying the access token first (15-min life)
