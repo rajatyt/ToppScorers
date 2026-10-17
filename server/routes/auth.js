@@ -17,8 +17,11 @@ import {
   createAdminSessionAndTokens,
   clearAdminCookies
 } from '../utils/tokenService.js';
+import crypto from 'crypto';
 import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
 import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
+import { forgotPasswordLimiter } from '../middleware/rateLimiter.js';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -135,6 +138,134 @@ router.post('/login', async (req, res) => {
     res.json({ user: userWithoutPassword, profile, token: accessToken });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Standardized response message to prevent account enumeration
+    const genericSuccessMsg = 'If an account exists with that email address, a password reset link has been dispatched.';
+
+    if (!user) {
+      return res.json({ message: genericSuccessMsg });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'This account is deactivated or suspended. Please contact support.' });
+    }
+
+    // Generate cryptographically secure random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Token expires in 15 minutes
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    await user.save();
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
+
+    const emailResult = await sendPasswordResetEmail({
+      toEmail: user.email,
+      userName: user.name,
+      resetUrl,
+      clientUrl
+    });
+
+    const responsePayload = {
+      message: genericSuccessMsg
+    };
+
+    // Include devResetUrl in non-production environments to streamline testing
+    if (process.env.NODE_ENV !== 'production' || emailResult.devMode) {
+      responsePayload.devResetUrl = resetUrl;
+    }
+
+    return res.json(responsePayload);
+  } catch (error) {
+    console.error('[Auth] forgot-password error:', error);
+    res.status(500).json({ message: 'Unable to process password reset request at this time' });
+  }
+});
+
+// POST /api/auth/verify-reset-token
+router.post('/verify-reset-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ valid: false, message: 'Reset token is required' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ valid: false, message: 'Password reset link is invalid or has expired.' });
+    }
+
+    // Obfuscate email for UI preview (e.g., r***t@gmail.com)
+    const emailParts = user.email.split('@');
+    const namePart = emailParts[0];
+    const domainPart = emailParts[1];
+    const maskedName = namePart.length <= 2 
+      ? namePart[0] + '***' 
+      : namePart[0] + '***' + namePart[namePart.length - 1];
+    const maskedEmail = `${maskedName}@${domainPart}`;
+
+    return res.json({ valid: true, maskedEmail });
+  } catch (error) {
+    res.status(500).json({ valid: false, message: error.message });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Password reset link is invalid or has expired.' });
+    }
+
+    // Set new password (pre-save hook will hash it with bcrypt)
+    user.passwordHash = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    // Security best practice: invalidate active sessions
+    await ActiveSession.deleteMany({ userId: user._id });
+
+    return res.json({ message: 'Password has been reset successfully. You may now sign in with your new password.' });
+  } catch (error) {
+    console.error('[Auth] reset-password error:', error);
+    res.status(500).json({ message: error.message || 'Failed to reset password' });
   }
 });
 

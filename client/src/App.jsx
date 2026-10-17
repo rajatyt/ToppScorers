@@ -24,6 +24,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import TeacherVerification from './pages/TeacherVerification';
 import TeacherProfileEdit from './pages/TeacherProfileEdit';
 import SupportQueries from './pages/SupportQueries';
+import ResetPassword from './pages/ResetPassword';
 import TeacherVerificationPromptModal from './components/TeacherVerificationPromptModal';
 import StudentVerificationPromptModal from './components/StudentVerificationPromptModal';
 import WelcomeRoleModal from './components/WelcomeRoleModal';
@@ -57,10 +58,13 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           
-          {/* Unified Auth (Login + Student Signup + Teacher Signup + Google Sign-In) */}
+          {/* Unified Auth (Login + Student Signup + Teacher Signup + Google Sign-In + Recovery) */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/signup" element={<Auth />} />
+          <Route path="/forgot-password" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           {/* Role-based Directories */}
           <Route path="/teachers" element={<FindTeachers />} />

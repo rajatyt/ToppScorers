@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
+import api from '../api/axios';
 import { toast } from 'react-hot-toast';
 import {
   FaGraduationCap, FaChalkboardTeacher, FaUserGraduate, FaBook,
@@ -11,7 +12,8 @@ import {
 } from 'react-icons/fa';
 import {
   FiLogIn, FiUserCheck, FiBookOpen, FiArrowRight, FiArrowLeft,
-  FiMail, FiLock, FiUser, FiPhone, FiCheckCircle,
+  FiMail, FiLock, FiUser, FiPhone, FiCheckCircle, FiKey,
+  FiExternalLink, FiCopy,
 } from 'react-icons/fi';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
@@ -93,9 +95,16 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 'cards' | 'login' | 'student' | 'teacher'
+  // 'cards' | 'login' | 'student' | 'teacher' | 'forgot'
   const [view, setView] = useState('cards');
   const [loading, setLoading] = useState(false);
+
+  // Forgot password state
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitted, setForgotSubmitted] = useState(false);
+  const [forgotDevUrl, setForgotDevUrl] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [copiedDevUrl, setCopiedDevUrl] = useState(false);
 
   // Google role & location selection modal
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -121,6 +130,8 @@ const Auth = () => {
       setView('student');
     } else if (tabParam === 'login' || tabParam === 'signin') {
       setView('login');
+    } else if (tabParam === 'forgot' || tabParam === 'forgotpassword' || location.pathname === '/forgot-password') {
+      setView('forgot');
     } else {
       // Default first screen is always 'cards' ("Welcome to ToppScorers" 3-card chooser)
       setView('cards');
@@ -141,6 +152,27 @@ const Auth = () => {
       toast.success(t('auth.loginSuccess'));
       navigate(data.user?.role === 'admin' ? '/admin' : '/');
     } catch (err) { toast.error(err.response?.data?.message || t('auth.loginFailed')); } finally { setLoading(false); }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotEmail.trim()) {
+      toast.error(t('auth.enterEmailPassword') || 'Please enter your registered email address.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await api.post('/auth/forgot-password', { email: forgotEmail.trim() });
+      setForgotSubmitted(true);
+      if (res.data?.devResetUrl) {
+        setForgotDevUrl(res.data.devResetUrl);
+      }
+      toast.success(res.data?.message || t('auth.resetLinkSent'));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit password reset request');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   const handleSignup = async (e) => {
@@ -413,9 +445,25 @@ const Auth = () => {
           {isLogin ? (
             <form className="space-y-4" onSubmit={handleLogin}>
               <Input icon={FiMail} label={t('auth.email')} name="email" type="email" required placeholder={t('auth.emailPlaceholder')} value={formData.email} onChange={handleChange} />
-              <Input icon={FiLock} label={t('auth.password')} name="password" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.password} onChange={handleChange} />
+              <div>
+                <Input icon={FiLock} label={t('auth.password')} name="password" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.password} onChange={handleChange} />
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(formData.email || '');
+                      setForgotSubmitted(false);
+                      setForgotDevUrl('');
+                      setView('forgot');
+                    }}
+                    className="text-xs font-semibold text-amber-600 hover:text-amber-500 hover:underline transition-colors cursor-pointer"
+                  >
+                    {t('auth.forgotPassword')}
+                  </button>
+                </div>
+              </div>
               <button type="submit" disabled={loading}
-                className={`w-full py-3 bg-gradient-to-r ${accent.btn} text-white font-bold text-sm rounded-xl shadow-lg transition-all hover:scale-[1.01] mt-1`}
+                className={`w-full py-3 bg-gradient-to-r ${accent.btn} text-white font-bold text-sm rounded-xl shadow-lg transition-all hover:scale-[1.01] mt-1 cursor-pointer`}
               >
                 {loading ? t('auth.signingIn') : t('auth.signIn')}
               </button>
@@ -559,6 +607,140 @@ const Auth = () => {
     );
   };
 
+  /* ───────── Forgot Password View ───────── */
+  const renderForgotPassword = () => {
+    return (
+      <div className="w-full max-w-md mx-auto animate-fadeInUp">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border-2 border-amber-400/40 p-7 sm:p-8">
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={() => setView('login')}
+            className="flex items-center text-xs text-slate-400 hover:text-slate-700 font-medium mb-5 transition-colors group cursor-pointer"
+          >
+            <FiArrowLeft className="mr-1.5 group-hover:-translate-x-0.5 transition-transform" size={14} />
+            {t('auth.backToSignIn')}
+          </button>
+
+          {/* Header */}
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-lg flex-shrink-0">
+              <FiKey size={22} />
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('auth.forgotPasswordTitle')}</h2>
+              <p className="text-[11px] text-slate-500">{t('auth.forgotPasswordSubtitle')}</p>
+            </div>
+          </div>
+
+          {!forgotSubmitted ? (
+            <form className="space-y-4" onSubmit={handleForgotPassword}>
+              <Input
+                icon={FiMail}
+                label={t('auth.email')}
+                name="forgotEmail"
+                type="email"
+                required
+                placeholder={t('auth.emailPlaceholder')}
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                autoFocus
+              />
+
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg transition-all hover:scale-[1.01] mt-2 cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                {forgotLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />
+                    <span>{t('auth.sendingResetLink')}</span>
+                  </>
+                ) : (
+                  <span>{t('auth.sendResetLink')}</span>
+                )}
+              </button>
+            </form>
+          ) : (
+            <div className="text-center py-2 space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-sm">
+                <FiCheckCircle size={30} />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 mb-1.5">{t('auth.resetLinkSent')}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                  {t('auth.resetLinkSentDesc')}
+                </p>
+              </div>
+
+              {forgotDevUrl && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-left space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider">
+                      Developer Testing Link (Dev Mode)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold">Local</span>
+                  </div>
+                  <p className="text-xs text-slate-700">
+                    Click below to open the reset password screen immediately in your browser:
+                  </p>
+                  <div className="flex items-center space-x-2 pt-1">
+                    <a
+                      href={forgotDevUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg text-center transition-colors flex items-center justify-center"
+                    >
+                      <span>Open Reset Page</span>
+                      <FiExternalLink className="ml-1.5" size={13} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(forgotDevUrl);
+                        setCopiedDevUrl(true);
+                        setTimeout(() => setCopiedDevUrl(false), 2000);
+                      }}
+                      className="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center cursor-pointer"
+                    >
+                      <FiCopy className="mr-1" size={12} />
+                      {copiedDevUrl ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotSubmitted(false);
+                    setForgotDevUrl('');
+                  }}
+                  className="text-xs font-semibold text-amber-600 hover:underline cursor-pointer"
+                >
+                  Send another reset link
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+            <button
+              type="button"
+              onClick={() => setView('login')}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors inline-flex items-center cursor-pointer"
+            >
+              <FiArrowLeft className="mr-1.5" size={13} />
+              {t('auth.backToSignIn')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   /* ────────────────────────────  RENDER  ──────────────────────────── */
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-amber-50/30 px-4 sm:px-6 lg:px-8 py-10 overflow-hidden">
@@ -572,7 +754,7 @@ const Auth = () => {
 
       {/* Content */}
       <div className="relative z-10 w-full">
-        {view === 'cards' ? renderCardChooser() : renderForm()}
+        {view === 'cards' ? renderCardChooser() : view === 'forgot' ? renderForgotPassword() : renderForm()}
       </div>
 
       {/* ─── Google Role & Location Popup Modal ─── */}

@@ -16,7 +16,9 @@ const userSchema = new mongoose.Schema({
   parentGuardianConsent: { type: Boolean, default: false },
   consentGiven: { type: Boolean, default: true },
   consentTimestamp: { type: Date, default: Date.now },
-  accountDeletionRequested: { type: Date, default: null }
+  accountDeletionRequested: { type: Date, default: null },
+  resetPasswordToken: { type: String, default: null, index: true },
+  resetPasswordExpires: { type: Date, default: null }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
