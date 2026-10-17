@@ -121,7 +121,7 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/teacher-hunt?retry
 JWT_SECRET=your-super-secret-jwt-key-change-this
 JWT_EXPIRE=7d
 CLIENT_URL=http://localhost:5173
-WHATSAPP_NUMBER=917019074944
+WHATSAPP_NUMBER=91XXXXXXXXXX
 ```
 
 ### 3. Seed the Database
@@ -132,7 +132,7 @@ npm run seed
 ```
 
 This creates:
-- **Admin account**: `admin@toppscorers.com` / `admin123`
+- **Seed demonstration accounts** for testing the platform
 - **6 demo teachers** with varied subjects and locations
 - **4 demo students**
 - **Default homepage widget** configuration
@@ -176,13 +176,14 @@ The app will be available at:
 - JWT stored in httpOnly cookies (secure, no localStorage token exposure)
 - Active sessions tracked for admin visibility
 
-### Demo Credentials
+### Demo Test Accounts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@toppscorers.com | admin123 |
-| Teacher | ravi@example.com | password123 |
-| Student | rohan@example.com | password123 |
+| Role | Demo Email |
+|------|------------|
+| Teacher | ravi@example.com |
+| Student | rohan@example.com |
+
+> **Security Note**: Administrative credentials should be securely defined in environment variables during setup and never stored or shared in public repositories.
 
 ---
 
@@ -293,22 +294,22 @@ ToppScorers implements strict role enforcement, field-level privacy serializatio
 ### 2. How to Test the Privacy & Role Protections
 
 #### A. Role Enforcement on Directories
-- **Student cannot access student directory**: Log in as a student (`rohan@example.com` / `password123`) and attempt to visit [http://localhost:5173/students](http://localhost:5173/students). You will be automatically redirected to `/teachers` with an informational notice. Calling `GET /api/students` directly via API with student credentials returns `403 Forbidden`.
-- **Teacher cannot access teacher directory**: Log in as a teacher (`ravi@example.com` / `password123`) and attempt to visit [http://localhost:5173/teachers](http://localhost:5173/teachers). You will be automatically redirected to `/students`. Calling `GET /api/teachers` with teacher credentials returns `403 Forbidden`.
+- **Student cannot access student directory**: Log in as a student (`rohan@example.com`) and attempt to visit [http://localhost:5173/students](http://localhost:5173/students). You will be automatically redirected to `/teachers` with an informational notice. Calling `GET /api/students` directly via API with student credentials returns `403 Forbidden`.
+- **Teacher cannot access teacher directory**: Log in as a teacher (`ravi@example.com`) and attempt to visit [http://localhost:5173/teachers](http://localhost:5173/teachers). You will be automatically redirected to `/students`. Calling `GET /api/teachers` with teacher credentials returns `403 Forbidden`.
 
 #### B. Address & Phone Masking Before Connection
-1. Log in as a Student (`rohan@example.com` / `password123`).
+1. Log in as a Student (`rohan@example.com`).
 2. Visit `/teachers` and open any teacher profile (e.g. Dr. Priya Singh).
 3. Observe that only the area (*South Extension*) and city (*Delhi*) are visible. The exact street address and phone number are locked behind a shield notice.
 4. Click **Connect / Request Details**, enter an optional message, and submit.
-5. Log out, then log in as the Teacher (`priya@example.com` / `password123`).
+5. Log out, then log in as the Teacher (`priya@example.com`).
 6. Visit `/connections` (under "Incoming"). You will see the incoming connection request from Rohan Verma with his message.
 7. Click **Accept & Share**.
 8. Now, both Rohan and Dr. Priya Singh can see each other's full street addresses, phone numbers, and direct contact options!
 
 #### C. Audit Logging & Abuse Tracking
 - Every time full address or phone number details are viewed by an authorized connection, a record is logged to `ProfileViewLog`.
-- Log in as Admin (`admin@toppscorers.com` / `admin123`) and visit `/admin/moderation` → **Address Logs** to view the live audit trail of who accessed whose details.
+- Log in with your Admin account and visit `/admin/moderation` → **Address Logs** to view the live audit trail of who accessed whose details.
 
 #### D. DPDP Compliance & Account Deletion
 - Visit `/settings` → **DPDP & Deletion** to review statutory rights under the DPDP Act 2023.
@@ -320,6 +321,3 @@ ToppScorers implements strict role enforcement, field-level privacy serializatio
 
 MIT License © 2026 ToppScorers
 
----
-
-<p align="center">Made with ❤️ in India</p>

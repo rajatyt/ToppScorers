@@ -310,27 +310,27 @@ const ProfileDetail = () => {
                 {isGuest ? (
                   <Link
                     to="/login"
-                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01]"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 text-slate-950 font-black text-sm rounded-xl gold-button-halo transition-all active:scale-[0.98] cursor-pointer"
                   >
                     <FiLock className="mr-2" />
                     Sign In to Connect
                   </Link>
                 ) : isConnected ? (
-                  <div className="inline-flex items-center px-5 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs">
+                  <div className="inline-flex items-center px-5 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs shadow-xs">
                     <FiCheck className="mr-1.5 text-emerald-600 text-base" />
                     Connected • Contact Details Unlocked
                   </div>
                 ) : isPending ? (
-                  <div className="inline-flex items-center px-5 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-bold text-xs">
+                  <div className="inline-flex items-center px-5 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 font-bold text-xs shadow-xs">
                     <FaClock className="mr-1.5 text-amber-600" />
                     Connection Request Pending
                   </div>
                 ) : (
                   <button
                     onClick={() => setShowConnectModal(true)}
-                    className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01]"
+                    className="w-full sm:w-auto px-6 py-3 text-slate-950 font-black text-sm rounded-xl gold-button-halo transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    Connect / Request Details
+                    Connect / Book Demo Class
                   </button>
                 )}
               </div>
@@ -554,6 +554,54 @@ const ProfileDetail = () => {
 
           {/* Sidebar Info (1 col) */}
           <div className="space-y-6">
+            {/* Stitch Parent Assurance & Verification Seal Card */}
+            {isTeacherRoute && (
+              <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-white/10 relative overflow-hidden">
+                <div className="flex items-center space-x-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                    <FaShieldAlt size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-white">Institutional Audit</h3>
+                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                      {profile.isVerified ? '4-Tier Audit Cleared' : 'Standard Screening'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-slate-300 flex items-center gap-2">
+                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                      Govt Identity (Aadhaar)
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-bold uppercase">Audited</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-slate-300 flex items-center gap-2">
+                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                      University Degree Records
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-bold uppercase">Verified</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-slate-300 flex items-center gap-2">
+                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                      0% Commission Direct Pay
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold uppercase">Guaranteed</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-slate-300 flex items-center gap-2">
+                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                      Free Demo Trial
+                    </span>
+                    <span className="text-[10px] text-sky-400 font-bold uppercase">Protected</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Fee / Budget & Preference Box */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs">
               <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-4">

@@ -119,18 +119,18 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-50/70 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-[#070b14] via-[#0d1c2d] to-[#1a1208] border border-amber-500/30 text-white rounded-3xl p-6 sm:p-8 shadow-2xl mb-8 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider border border-amber-500/30 shadow-sm">
                   {isTeacher ? 'Teacher Control Center' : 'Student Control Center'}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight">
                 Welcome back, {user?.name}!
               </h1>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
                 {isTeacher
                   ? 'Manage incoming tuition requests, profile visibility, and track educator analytics.'
                   : 'Manage saved teachers, active tuition requests, and learning goals.'}
@@ -139,7 +139,7 @@ const Dashboard = () => {
 
             <Link
               to="/settings"
-              className="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
             >
               <FaCog className="mr-1.5" />
               Settings & Privacy
@@ -645,7 +645,7 @@ const Dashboard = () => {
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.incomingCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.incomingCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Incoming Requests</div>
               </button>
 
@@ -665,7 +665,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
                   <FaPaperPlane size={16} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.sentCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.sentCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Sent Requests</div>
               </button>
 
@@ -685,7 +685,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
                   <FaCheckCircle size={18} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.acceptedCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.acceptedCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Connected</div>
               </button>
 
@@ -693,7 +693,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
                   <FaEye size={18} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.profileViewsCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.profileViewsCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Profile Views</div>
               </div>
             </>
@@ -703,7 +703,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-3">
                   <FaBookmark size={18} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.savedCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.savedCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Saved Teachers</div>
               </div>
 
@@ -723,7 +723,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
                   <FaPaperPlane size={16} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.sentCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.sentCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Sent Requests</div>
               </button>
 
@@ -750,7 +750,7 @@ const Dashboard = () => {
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.incomingCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.incomingCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Incoming Requests</div>
               </button>
 
@@ -770,7 +770,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
                   <FaCheckCircle size={18} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900">{metrics?.acceptedCount || 0}</div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.acceptedCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Connected</div>
               </button>
             </>

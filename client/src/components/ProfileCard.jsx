@@ -79,10 +79,10 @@ const ProfileCard = ({
   const isVerifiedBadgeShown = isTeacher ? isTeacherVerified : isStudentVerified;
 
   return (
-    <div className={`group relative bg-white rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 ${
+    <div className={`group relative bg-white rounded-3xl border transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-card-hover hover:-translate-y-1.5 ${
       isTeacher
-        ? 'border-slate-200/90 hover:border-amber-400'
-        : 'border-slate-200/90 hover:border-emerald-400'
+        ? 'border-slate-200/80 hover:border-amber-400/80'
+        : 'border-slate-200/80 hover:border-emerald-400/80'
     }`}>
       {/* Top Banner accent gradient stripe */}
       <div className={`h-1.5 w-full ${
@@ -91,7 +91,7 @@ const ProfileCard = ({
           : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500'
       }`} />
 
-      <div className="p-4 sm:p-5 flex-grow flex flex-col justify-between space-y-3.5">
+      <div className="p-5 sm:p-5.5 flex-grow flex flex-col justify-between space-y-3.5">
         <div>
           {/* Top Row: Role Badge, Job ID, and Bookmark Button */}
           <div className="flex items-center justify-between gap-2 mb-3.5">
@@ -178,8 +178,8 @@ const ProfileCard = ({
 
             {/* Name & Location */}
             <div className="min-w-0 flex-1">
-              <h3 className={`font-extrabold text-slate-900 text-base sm:text-lg leading-snug truncate transition-colors ${
-                isTeacher ? 'group-hover:text-amber-700' : 'group-hover:text-emerald-700'
+              <h3 className={`font-display font-black text-slate-900 text-base sm:text-lg leading-snug truncate transition-colors ${
+                isTeacher ? 'group-hover:text-amber-600' : 'group-hover:text-emerald-600'
               }`}>
                 {name}
               </h3>
@@ -354,10 +354,10 @@ const ProfileCard = ({
         {isGuest ? (
           <Link
             to="/login"
-            className={`w-full inline-flex items-center justify-center text-xs font-black py-2.5 px-3 rounded-xl transition-all shadow-xs ${
+            className={`w-full inline-flex items-center justify-center text-xs font-black py-2.5 px-3 rounded-xl transition-all shadow-xs active:scale-[0.98] ${
               isTeacher
-                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-glow-sm'
+                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-glow-emerald'
             }`}
           >
             <FiLock className="mr-1.5" size={13} />
@@ -371,12 +371,12 @@ const ProfileCard = ({
                   type="button"
                   onClick={() => onConnect(profile)}
                   disabled={isPending}
-                  className={`flex-1 inline-flex items-center justify-center text-xs font-black py-2.5 px-2.5 rounded-xl transition-all cursor-pointer shadow-xs ${
+                  className={`flex-1 inline-flex items-center justify-center text-xs font-black py-2.5 px-2.5 rounded-xl transition-all cursor-pointer shadow-xs active:scale-[0.98] ${
                     isPending
                       ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                       : isTeacher
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black'
-                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black'
+                        ? 'bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black shadow-glow-sm hover:shadow-glow-md'
+                        : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-glow-emerald hover:shadow-md'
                   }`}
                 >
                   {isPending 
@@ -387,7 +387,7 @@ const ProfileCard = ({
                 </button>
                 <Link
                   to={isTeacher ? `/teachers/${profile._id}` : `/students/${profile._id}`}
-                  className="inline-flex items-center justify-center text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200/90 py-2.5 px-3 rounded-xl transition-colors shadow-2xs"
+                  className="inline-flex items-center justify-center text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 py-2.5 px-3 rounded-xl transition-all shadow-2xs active:scale-[0.98]"
                   title="View Profile Details"
                 >
                   {t('common.viewProfile', 'View')}
@@ -397,7 +397,7 @@ const ProfileCard = ({
             ) : (
               <Link
                 to={isTeacher ? `/teachers/${profile._id}` : `/students/${profile._id}`}
-                className="w-full inline-flex items-center justify-center text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200/90 py-2.5 px-3 rounded-xl transition-colors shadow-2xs"
+                className="w-full inline-flex items-center justify-center text-xs font-bold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 py-2.5 px-3 rounded-xl transition-all shadow-2xs active:scale-[0.98]"
               >
                 {t('common.viewFullProfile', 'View Full Profile')}
                 <FiArrowRight className="ml-1 text-[11px]" />

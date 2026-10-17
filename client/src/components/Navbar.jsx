@@ -50,29 +50,40 @@ const Navbar = () => {
   const isVerifiedAccount = isVerifiedTeacher || isVerifiedStudent;
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 bg-white/95 backdrop-blur-md ${scrolled ? 'shadow-md border-b-0' : 'border-b border-slate-200/80'}`}>
-      <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10">
-        <div className="flex justify-between items-center h-16">
+    <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-xl shadow-glass border-b border-slate-200/70' : 'bg-white/80 backdrop-blur-lg border-b border-slate-200/50'}`}>
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+        <div className="flex justify-between items-center h-16 sm:h-18">
           {/* Brand Logo - anchored to the left */}
           <div className="flex items-center flex-shrink-0">
-            <Link to="/" className="flex items-center space-x-2.5 group">
-              <img
-                src="/logo.png"
-                alt="ToppScorers"
-                className="w-11 h-11 sm:w-13 sm:h-13 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
-              />
+            <Link to="/" className="flex items-center space-x-3 group">
+              <div className="relative">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-xs opacity-0 group-hover:opacity-100 transition-opacity" />
+                <img
+                  src="/logo.png"
+                  alt="ToppScorers"
+                  className="relative w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+                />
+              </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900 leading-none">ToppScorers</span>
-                <span className="text-[9px] sm:text-[10px] text-amber-600 font-bold uppercase tracking-wider">Teacher & Tuition Hunt</span>
+                <span className="font-display font-black text-lg sm:text-xl tracking-tight text-slate-900 leading-none group-hover:text-amber-600 transition-colors">
+                  Topp<span className="text-amber-500">Scorers</span>
+                </span>
+                <span className="text-[9px] sm:text-[10px] text-amber-600/90 font-bold uppercase tracking-widest mt-0.5">
+                  Verified Educators Hub
+                </span>
               </div>
             </Link>
           </div>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex md:items-center md:space-x-3.5 lg:space-x-5 xl:space-x-6">
+          <div className="hidden md:flex md:items-center md:space-x-1.5 lg:space-x-2 xl:space-x-3">
             <Link
               to="/"
-              className={`text-sm xl:text-[15px] font-bold transition-colors ${location.pathname === '/' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+              className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+                location.pathname === '/'
+                  ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
             >
               {t('nav.home')}
             </Link>
@@ -81,7 +92,11 @@ const Navbar = () => {
             {(!isAuthenticated || isStudent || isAdmin) && (
               <Link
                 to="/teachers"
-                className={`text-sm xl:text-[15px] font-bold transition-colors ${location.pathname.startsWith('/teachers') ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+                  location.pathname.startsWith('/teachers')
+                    ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs'
+                    : 'text-slate-600 hover:text-amber-600 hover:bg-amber-50/50'
+                }`}
               >
                 {t('nav.findTeachers')}
               </Link>
@@ -90,7 +105,11 @@ const Navbar = () => {
             {(!isAuthenticated || isTeacher || isAdmin) && (
               <Link
                 to="/students"
-                className={`text-sm xl:text-[15px] font-bold transition-colors ${location.pathname.startsWith('/students') ? 'text-emerald-600 font-extrabold' : 'text-slate-700 hover:text-emerald-600'}`}
+                className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+                  location.pathname.startsWith('/students')
+                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-xs'
+                    : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50/50'
+                }`}
               >
                 {t('nav.findStudents')}
               </Link>
@@ -101,7 +120,11 @@ const Navbar = () => {
               <>
                 <Link
                   to="/dashboard"
-                  className={`text-sm xl:text-[15px] font-bold transition-colors inline-flex items-center space-x-1.5 ${location.pathname === '/dashboard' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all inline-flex items-center space-x-1.5 ${
+                    location.pathname === '/dashboard'
+                      ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  }`}
                 >
                   <span>{t('nav.dashboard')}</span>
                   {unreadCounts?.total > 0 && (
@@ -115,13 +138,13 @@ const Navbar = () => {
                 {isTeacher && (
                   <Link
                     to="/profile?tab=general"
-                    className={`text-sm xl:text-[15px] font-bold transition-colors inline-flex items-center space-x-1.5 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all inline-flex items-center space-x-1.5 ${
                       location.pathname === '/profile' && (!location.search || location.search.includes('tab=general'))
-                        ? 'text-amber-600 font-extrabold'
-                        : 'text-slate-700 hover:text-amber-600'
+                        ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs'
+                        : 'text-slate-600 hover:text-amber-600 hover:bg-amber-50/50'
                     }`}
                   >
-                    <FaUserEdit className="text-amber-500 text-xs sm:text-sm" />
+                    <FaUserEdit className="text-amber-500 text-xs" />
                     <span className="hidden xl:inline">{t('profileEdit.tabGeneral', 'Personal & Tutoring Info')}</span>
                     <span className="xl:hidden">Tutoring Info</span>
                   </Link>
@@ -129,7 +152,11 @@ const Navbar = () => {
 
                 <Link
                   to="/queries"
-                  className={`text-sm xl:text-[15px] font-bold transition-colors inline-flex items-center space-x-1.5 ${location.pathname === '/queries' || location.pathname === '/support' ? 'text-amber-600 font-extrabold' : 'text-slate-700 hover:text-amber-600'}`}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all inline-flex items-center space-x-1.5 ${
+                    location.pathname === '/queries' || location.pathname === '/support'
+                      ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  }`}
                 >
                   <span>Help & Doubts</span>
                   {unreadCounts?.queries > 0 && (
@@ -141,17 +168,17 @@ const Navbar = () => {
               </>
             )}
 
-            <div className="border-l border-slate-200 h-6 mx-1"></div>
+            <div className="border-l border-slate-200/80 h-5 mx-1"></div>
 
             {/* Language Switcher */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shadow-inner">
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer ${
                   currentLang === 'en'
-                    ? 'bg-white text-amber-600 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 font-semibold'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="Switch to English"
               >
@@ -160,10 +187,10 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={() => setLanguage('hi')}
-                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer ${
                   currentLang === 'hi'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-                    : 'text-slate-500 hover:text-slate-900 font-semibold'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="हिंदी में बदलें"
               >
@@ -174,21 +201,21 @@ const Navbar = () => {
             {/* User Account / Auth Dropdown */}
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="flex items-center space-x-2.5 text-slate-800 hover:text-amber-600 font-bold text-sm py-1.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 focus:outline-none transition-colors border border-slate-200/60 shadow-xs">
-                  <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
+                <button className="flex items-center space-x-2 py-1.5 px-3 rounded-full bg-slate-100/80 hover:bg-slate-200/80 border border-slate-200/80 shadow-xs transition-all focus:outline-none cursor-pointer">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-slate-900 to-slate-700 text-white flex items-center justify-center text-[11px] font-bold shadow-xs">
                     {user?.name?.charAt(0) || 'U'}
                   </div>
-                  <span className="max-w-[150px] sm:max-w-[180px] truncate text-slate-900 font-bold">{user.name || 'Account'}</span>
+                  <span className="max-w-[130px] sm:max-w-[160px] truncate text-slate-900 font-bold text-xs">{user.name || 'Account'}</span>
                   {isVerifiedAccount && (
-                    <span className="inline-flex items-center text-emerald-600 font-black text-sm" title={isVerifiedTeacher ? "Verified Teacher" : "Verified Student/Parent"}>
+                    <span className="inline-flex items-center text-emerald-600 font-black text-xs" title={isVerifiedTeacher ? "Verified Teacher" : "Verified Student/Parent"}>
                       ✅
                     </span>
                   )}
                 </button>
 
-                <div className="absolute right-0 w-72 mt-2 py-2 px-1.5 bg-white rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-slate-200/80 z-50">
+                <div className="absolute right-0 w-72 mt-2 py-2 px-1.5 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-slate-200/80 z-50">
                   {/* Account Identity Header */}
-                  <div className="px-3 py-2.5 mb-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="px-3 py-2.5 mb-1.5 bg-slate-50/90 rounded-xl border border-slate-100">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-extrabold text-xs text-slate-900 truncate">
                         {user.name || 'Account'}
@@ -355,10 +382,10 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xs transition-colors"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-glow-sm hover:shadow-glow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
               >
-                <FiUser size={15} />
-                <span>{t('nav.signInJoin')}</span>
+                <FiUser size={14} className="stroke-[2.5] flex-shrink-0" />
+                <span className="whitespace-nowrap font-black">{t('nav.signInJoin')}</span>
               </Link>
             )}
           </div>

@@ -71,17 +71,16 @@ const FloatingBackground = () => {
   );
 };
 
-/* ──── Shared input component (defined outside Auth to preserve focus across re-renders) ──── */
 const Input = ({ icon: Ic, label, ...props }) => (
   <div>
-    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+    <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
-      <Ic className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+      <Ic className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
       <input
         {...props}
-        className="w-full pl-10 pr-4 py-2.5 bg-white/70 backdrop-blur-sm border border-slate-200/80 rounded-xl text-sm text-slate-800
-                   placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400
-                   transition-all duration-200"
+        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 focus:bg-white border border-slate-200/90 rounded-xl text-sm text-slate-900 font-medium
+                   placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500
+                   transition-all duration-200 shadow-2xs"
       />
     </div>
   </div>
@@ -263,26 +262,26 @@ const Auth = () => {
       </div>
 
       {/* Three Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
         {/* Sign In Card */}
         <button
           onClick={() => setView('login')}
-          className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 sm:p-8 border-2 border-slate-200/80
-                     hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300
-                     hover:-translate-y-1 text-left"
+          className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
+                     hover:border-amber-400 hover:shadow-card-hover hover:shadow-amber-500/10 transition-all duration-300
+                     hover:-translate-y-1.5 text-left cursor-pointer"
         >
-          <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
+          <div className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
             <FiArrowRight className="text-slate-400 group-hover:text-amber-600 transition-colors" size={14} />
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400
                           flex items-center justify-center shadow-lg mb-5 group-hover:scale-105 transition-transform">
             <FiLogIn size={24} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1.5">{t('auth.signIn')}</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 mb-1.5">{t('auth.signIn')}</h3>
+          <p className="text-xs text-slate-500 leading-relaxed font-medium">
             {t('auth.signInDesc')}
           </p>
-          <div className="mt-4 flex items-center text-[11px] font-semibold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="mt-4 flex items-center text-xs font-black text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
             {t('auth.continue')} <FiArrowRight className="ml-1" size={12} />
           </div>
         </button>
@@ -290,22 +289,22 @@ const Auth = () => {
         {/* Student Card */}
         <button
           onClick={() => setView('student')}
-          className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 sm:p-8 border-2 border-slate-200/80
-                     hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300
-                     hover:-translate-y-1 text-left"
+          className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
+                     hover:border-emerald-400 hover:shadow-card-hover hover:shadow-emerald-500/10 transition-all duration-300
+                     hover:-translate-y-1.5 text-left cursor-pointer"
         >
-          <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+          <div className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
             <FiArrowRight className="text-slate-400 group-hover:text-emerald-600 transition-colors" size={14} />
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white
-                          flex items-center justify-center shadow-lg mb-5 group-hover:scale-105 transition-transform">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white
+                          flex items-center justify-center shadow-lg mb-5 group-hover:scale-105 transition-transform shadow-emerald-500/20">
             <FaUserGraduate size={24} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1.5">{t('auth.imStudent')}</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 mb-1.5">{t('auth.imStudent')}</h3>
+          <p className="text-xs text-slate-500 leading-relaxed font-medium">
             {t('auth.studentDesc')}
           </p>
-          <div className="mt-4 flex items-center text-[11px] font-semibold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="mt-4 flex items-center text-xs font-black text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
             {t('auth.createAccount')} <FiArrowRight className="ml-1" size={12} />
           </div>
         </button>
@@ -313,22 +312,22 @@ const Auth = () => {
         {/* Teacher Card */}
         <button
           onClick={() => setView('teacher')}
-          className="group relative bg-white/80 backdrop-blur-md rounded-2xl p-6 sm:p-8 border-2 border-slate-200/80
-                     hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300
-                     hover:-translate-y-1 text-left"
+          className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
+                     hover:border-amber-400 hover:shadow-card-hover hover:shadow-amber-500/10 transition-all duration-300
+                     hover:-translate-y-1.5 text-left cursor-pointer"
         >
-          <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-            <FiArrowRight className="text-slate-400 group-hover:text-blue-600 transition-colors" size={14} />
+          <div className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
+            <FiArrowRight className="text-slate-400 group-hover:text-amber-600 transition-colors" size={14} />
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white
-                          flex items-center justify-center shadow-lg mb-5 group-hover:scale-105 transition-transform">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950
+                          flex items-center justify-center shadow-lg mb-5 group-hover:scale-105 transition-transform shadow-amber-500/20">
             <FaChalkboardTeacher size={24} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1.5">{t('auth.imTeacher')}</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 mb-1.5">{t('auth.imTeacher')}</h3>
+          <p className="text-xs text-slate-500 leading-relaxed font-medium">
             {t('auth.teacherDesc')}
           </p>
-          <div className="mt-4 flex items-center text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="mt-4 flex items-center text-xs font-black text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
             {t('auth.createAccount')} <FiArrowRight className="ml-1" size={12} />
           </div>
         </button>

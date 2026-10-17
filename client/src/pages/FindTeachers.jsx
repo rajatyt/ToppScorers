@@ -134,37 +134,47 @@ const FindTeachers = () => {
     <div className="min-h-screen bg-slate-50/60 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Banner Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white rounded-3xl p-6 sm:p-10 shadow-xl mb-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-gradient-to-br from-[#070b14] via-[#1a1208] to-[#070b14] text-white rounded-3xl p-6 sm:p-10 shadow-2xl mb-8 relative overflow-hidden border border-amber-500/20">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           
           <div className="max-w-2xl relative z-10">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-3">
+            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-3 border border-amber-500/30 backdrop-blur-md">
               <FaChalkboardTeacher className="mr-1.5" />
               {t('directory.findTeachers')}
             </span>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
+            <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-black tracking-tight mb-2 leading-tight">
               {t('directory.findTeachers')}
             </h1>
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6 font-medium">
               {t('directory.teacherSub')}
             </p>
 
             {/* Quick Search Input */}
-            <div className="flex bg-white rounded-2xl p-1.5 shadow-lg border border-slate-200/40 text-slate-800">
+            <div className="flex bg-slate-900/90 backdrop-blur-xl rounded-2xl p-1.5 shadow-2xl border border-white/20 text-white">
               <div className="flex-1 flex items-center pl-3">
-                <FaSearch className="text-slate-400 mr-2 flex-shrink-0" />
+                <FaSearch className="text-amber-400 mr-2.5 flex-shrink-0" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   placeholder={t('common.searchTeachersPlaceholder', 'Search by subject, teacher name, or area...')}
-                  className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-slate-400 text-slate-900"
+                  className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-slate-400 text-white font-medium"
                 />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(''); setPage(1); }}
+                    className="text-slate-400 hover:text-white text-xs px-2 py-1"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-all"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider transition-all shadow-glow-sm hover:shadow-glow-md cursor-pointer active:scale-95"
               >
                 {t('common.search', 'Search')}
               </button>

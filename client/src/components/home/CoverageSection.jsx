@@ -13,7 +13,8 @@ import {
   FaLaptopCode, 
   FaAward, 
   FaUserTie,
-  FaArrowRight
+  FaArrowRight,
+  FaThLarge
 } from 'react-icons/fa';
 import SectionDivider from '../common/SectionDivider';
 
@@ -22,11 +23,11 @@ const CoverageSection = () => {
   const [activeTab, setActiveTab] = useState('all');
 
   const categories = [
-    { id: 'all', label: t('coverage.tabAll', 'All Streams') },
-    { id: 'school', label: t('coverage.tabSchool', 'School Level (1–12)') },
-    { id: 'entrance', label: t('coverage.tabEntrance', 'Engineering & Medical') },
-    { id: 'competitive', label: t('coverage.tabCompetitive', 'Govt & Competitive') },
-    { id: 'skills', label: t('coverage.tabSkills', 'Skills & Tech') },
+    { id: 'all', label: t('coverage.tabAll', 'All Streams'), icon: FaThLarge },
+    { id: 'school', label: t('coverage.tabSchool', 'School Level (1–12)'), icon: FaBookReader },
+    { id: 'entrance', label: t('coverage.tabEntrance', 'Engineering & Medical'), icon: FaAtom },
+    { id: 'competitive', label: t('coverage.tabCompetitive', 'Govt & Competitive'), icon: FaLandmark },
+    { id: 'skills', label: t('coverage.tabSkills', 'Skills & Tech'), icon: FaLaptopCode },
   ];
 
   const coverageItems = [
@@ -270,25 +271,29 @@ const CoverageSection = () => {
             {t('coverage.subtext', 'From foundational school classes (1–12) to engineering, medical, government civil services, and tech skills — connect with verified educators across every subject that matters.')}
           </p>
 
-          {/* Interactive Filter Tabs */}
-          <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
-            {categories.map((cat) => {
-              const isActive = activeTab === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveTab(cat.id)}
-                  type="button"
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-2xs ${
-                    isActive
-                      ? 'bg-slate-900 text-white shadow-md scale-105'
-                      : 'bg-white text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
+          {/* Interactive Filter Tabs - Non-Breaking Segmented Container */}
+          <div className="mt-8 flex items-center justify-center">
+            <div className="inline-flex items-center gap-2 p-1.5 bg-slate-200/75 backdrop-blur-md rounded-2xl border border-slate-300/70 shadow-inner max-w-full overflow-x-auto no-scrollbar py-2 px-2">
+              {categories.map((cat) => {
+                const isActive = activeTab === cat.id;
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveTab(cat.id)}
+                    type="button"
+                    className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 active:scale-[0.98] ${
+                      isActive
+                        ? 'bg-slate-900 text-amber-400 shadow-md border border-slate-900 ring-2 ring-amber-400/25'
+                        : 'bg-white/90 text-slate-700 hover:text-slate-950 hover:bg-white border border-slate-200/80 shadow-2xs'
+                    }`}
+                  >
+                    {Icon && <Icon className={`text-xs sm:text-sm flex-shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-500'}`} />}
+                    <span className="whitespace-nowrap">{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -308,21 +313,21 @@ const CoverageSection = () => {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
                   key={item.id}
-                  className={`bg-white rounded-2xl shadow-xs hover:shadow-xl border border-slate-200/80 border-l-4 ${theme.border} p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 group`}
+                  className={`bg-white rounded-2xl shadow-xs hover:shadow-card-hover border border-slate-200/80 border-t-4 ${theme.border} p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1.5 group relative overflow-hidden`}
                 >
                   <div>
                     {/* Top Row: Icon & Badge */}
                     <div className="flex items-center justify-between mb-4">
-                      <div className={`p-3 rounded-2xl ${theme.iconBg} shadow-2xs`}>
+                      <div className={`p-3 rounded-2xl ${theme.iconBg} shadow-inner group-hover:scale-110 transition-transform duration-300`}>
                         {item.icon}
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${theme.badgeBg}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-black border ${theme.badgeBg}`}>
                         {item.badge}
                       </span>
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2 leading-snug group-hover:text-amber-600 transition-colors">
+                    <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 mb-2 leading-snug group-hover:text-amber-600 transition-colors">
                       {item.title}
                     </h3>
 
@@ -331,22 +336,34 @@ const CoverageSection = () => {
                       {item.desc}
                     </p>
 
-                    {/* Subject Pills */}
-                    <div className="space-y-1.5 mb-5">
+                    {/* Subject Pills (Clickable for instant search) */}
+                    <div className="space-y-2 mb-4">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                        Core Subjects & Topics:
+                        Tap any subject to search tutors:
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {item.subjects.map((sub, i) => (
-                          <span
+                          <Link
                             key={i}
-                            className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-colors shadow-2xs ${theme.chipBg}`}
+                            to={`/teachers?search=${encodeURIComponent(sub)}`}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs hover:scale-[1.03] active:scale-[0.97] ${theme.chipBg}`}
+                            title={`Find ${sub} tutors`}
                           >
                             {sub}
-                          </span>
+                          </Link>
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <Link
+                      to={`/teachers?search=${encodeURIComponent(item.searchQuery || item.title)}`}
+                      className={`text-xs font-extrabold flex items-center gap-1.5 text-slate-700 hover:text-amber-600 transition-colors ${theme.btnBg}`}
+                    >
+                      <span>Browse {item.badge} Tutors</span>
+                      <FaArrowRight size={11} className="transform group-hover:translate-x-1 transition-transform" />
+                    </Link>
                   </div>
                 </motion.div>
               );
@@ -355,32 +372,33 @@ const CoverageSection = () => {
         </motion.div>
 
         {/* Bottom Banner: Call to Action */}
-        <div className="mt-14 bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="mt-14 bg-gradient-to-r from-[#0a0f1d] via-[#161f36] to-[#0a0f1d] text-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           
           <div className="relative z-10 max-w-xl text-center md:text-left">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2">
-              Ready to Begin?
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2 border border-amber-500/30">
+              Personalized Learning & Teaching
             </span>
-            <h3 className="text-xl sm:text-2xl font-black mb-2">
+            <h3 className="font-display text-xl sm:text-2xl lg:text-3xl font-black mb-2 leading-tight">
               Learn or Teach Any Subject with 1-on-1 Focus
             </h3>
             <p className="text-slate-300 text-xs sm:text-sm">
-              Connect directly with verified educators or post your learning requirement with zero commission.
+              Connect directly with verified educators or post your learning requirement with zero ongoing commission.
             </p>
           </div>
 
           <div className="relative z-10 flex items-center gap-3 flex-wrap justify-center">
             <Link
               to="/teachers"
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-glow-sm hover:shadow-glow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>{t('coverage.findTutors', 'Find Verified Tutors')}</span>
               <FaArrowRight size={12} />
             </Link>
             <Link
               to="/students"
-              className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm transition-all"
+              className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm backdrop-blur-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>{t('coverage.findStudents', 'Find Tuition Students')}</span>
             </Link>
