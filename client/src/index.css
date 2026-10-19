@@ -116,18 +116,21 @@
   .text-gradient-amber {
     background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-emerald {
     background: linear-gradient(135deg, #6ee7b7 0%, #10b981 50%, #047857 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-blue {
     background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 50%, #1d4ed8 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
