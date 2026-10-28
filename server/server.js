@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 
@@ -31,6 +32,9 @@ connectDB();
 
 const app = express();
 
+// Trust reverse proxy for Google Cloud Run / Heroku / Nginx (required for secure cookies and rate limiting)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 // Handle JSON syntax errors gracefully (400 instead of 500)
@@ -42,7 +46,14 @@ app.use((err, req, res, next) => {
 });
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5000'].filter(Boolean);
+    if (allowed.includes(origin) || origin.endsWith('.run.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 
@@ -50,7 +61,7 @@ app.use(cors({
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root / Health check endpoints
-app.get(['/', '/api'], (req, res) => {
+app.get(['/api', '/api/health'], (req, res) => {
   res.json({
     status: 'healthy',
     message: 'ToppScorers API is running',
@@ -71,6 +82,13 @@ app.get(['/', '/api'], (req, res) => {
     }
   });
 });
+
+// In development, provide a simple message for root if client isn't served by express
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.json({ status: 'healthy', message: 'ToppScorers API (Dev Mode - Client running on Vite)' });
+  });
+}
 
 // Database connection readiness check for API calls
 app.use('/api', (req, res, next) => {
@@ -96,6 +114,18 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/widgets', widgetRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/queries', queryRoutes);
+
+// Serve static client assets in production
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {

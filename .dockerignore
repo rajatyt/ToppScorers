@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+client/node_modules
+client/dist
+server/node_modules
+server/uploads/*
+!server/uploads/.gitkeep
+server/.env
+.gemini
