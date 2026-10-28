@@ -7,6 +7,9 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
 
+ARG VITE_GOOGLE_CLIENT_ID=339763740052-eb3dhmklipu62utfjstmf56f37of85tm.apps.googleusercontent.com
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 COPY client/ ./
 RUN npm run build
 

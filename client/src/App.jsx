@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '339763740052-eb3dhmklipu62utfjstmf56f37of85tm.apps.googleusercontent.com';
 
 function AppContent() {
   const location = useLocation();
