@@ -261,12 +261,6 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-    res.json({ user: userWithoutPassword, profile, token: accessToken });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // POST /api/auth/forgot-password
 router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {
