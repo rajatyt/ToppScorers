@@ -9,38 +9,57 @@ import ActiveSession from './models/ActiveSession.js';
 import ConnectionRequest from './models/ConnectionRequest.js';
 import SavedProfile from './models/SavedProfile.js';
 import SystemSetting from './models/SystemSetting.js';
+import Report from './models/Report.js';
+import Block from './models/Block.js';
+import ProfileViewLog from './models/ProfileViewLog.js';
+import Query from './models/Query.js';
 
 dotenv.config();
+dotenv.config({ path: './server/.env' });
 
-const seedData = async () => {
+const cleanDatabaseAndSeedAdmin = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB Connected for Seeding');
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI is not defined in server/.env');
+    }
 
-    // Clear DB and old indexes
+    console.log('Connecting to MongoDB Atlas...');
+    await mongoose.connect(mongoUri);
+    console.log('MongoDB Connected successfully.');
+
+    // 1. Wipe all collections completely
+    console.log('Clearing all collections...');
     await Promise.all([
-      User.deleteMany(),
-      TeacherProfile.deleteMany(),
-      StudentProfile.deleteMany(),
-      WidgetConfig.deleteMany(),
-      FAQ.deleteMany(),
-      ActiveSession.deleteMany(),
-      ConnectionRequest.deleteMany(),
-      SavedProfile.deleteMany(),
-      SystemSetting.deleteMany()
+      User.deleteMany({}),
+      TeacherProfile.deleteMany({}),
+      StudentProfile.deleteMany({}),
+      WidgetConfig.deleteMany({}),
+      FAQ.deleteMany({}),
+      ActiveSession.deleteMany({}),
+      ConnectionRequest.deleteMany({}),
+      SavedProfile.deleteMany({}),
+      SystemSetting.deleteMany({}),
+      Report.deleteMany({}),
+      Block.deleteMany({}),
+      ProfileViewLog.deleteMany({}),
+      Query.deleteMany({})
     ]);
+
+    // Drop indexes safely
     await TeacherProfile.collection.dropIndexes().catch(() => {});
     await StudentProfile.collection.dropIndexes().catch(() => {});
-    console.log('Database and old indexes cleared');
+    await User.collection.dropIndexes().catch(() => {});
+    console.log('All collections and legacy indexes cleared.');
 
-    // System Settings
+    // 2. Default System Settings
     await SystemSetting.create({
       key: 'guestDirectoryVisible',
       value: true,
       description: 'Allow guests (non-logged-in users) to view preview directory'
     });
 
-    // Create Admin
+    // 3. Create Clean Admin User
     const adminUser = await User.create({
       name: 'Admin User',
       email: 'admin@toppscorers.com',
@@ -49,278 +68,9 @@ const seedData = async () => {
       role: 'admin',
       consentGiven: true
     });
+    console.log(`Admin User created: ${adminUser.email} (Role: ${adminUser.role})`);
 
-    // Create 6 Teachers
-    const teachersData = [
-      {
-        name: 'Ravi Kumar',
-        email: 'ravi@example.com',
-        phone: '9998887771',
-        sub: ['Mathematics', 'Advanced Calculus'],
-        exam: ['JEE Main', 'JEE Advanced'],
-        qualifications: ['M.Sc Mathematics, IIT Delhi', 'B.Ed'],
-        certifications: ['CSIR NET AIR 42', 'CTET Qualified'],
-        experience: 8,
-        city: 'Kota',
-        area: 'Vigyan Nagar',
-        fullAddress: 'Plot 42, Sector 3, Vigyan Nagar, Kota, Rajasthan',
-        pincode: '324005',
-        lat: 25.1388,
-        lng: 75.8344,
-        feeAmount: 2500,
-        feePeriod: 'monthly',
-        teachingMode: 'all',
-        rating: 4.9,
-        bio: 'Ex-Allen senior faculty with 8+ years experience guiding top 100 JEE Advanced rankers. Passionate about concept visualization.'
-      },
-      {
-        name: 'Dr. Priya Singh',
-        email: 'priya@example.com',
-        phone: '9998887772',
-        sub: ['Biology', 'Zoology', 'Botany'],
-        exam: ['NEET', 'AIIMS', 'CBSE 12th'],
-        qualifications: ['MBBS, Maulana Azad Medical College', 'M.Sc Biology'],
-        certifications: ['NEET AIR 215 (2014)', 'CTET Certified'],
-        experience: 6,
-        city: 'Delhi',
-        area: 'South Extension',
-        fullAddress: 'C-14, South Extension Part II, New Delhi',
-        pincode: '110049',
-        lat: 28.5729,
-        lng: 77.2228,
-        feeAmount: 3000,
-        feePeriod: 'monthly',
-        teachingMode: 'online',
-        rating: 4.8,
-        bio: 'Doctor turned educator helping students score 340+ in NEET Biology through high-yield diagrams and NCERT deep dives.'
-      },
-      {
-        name: 'Amit Sharma',
-        email: 'amit@example.com',
-        phone: '9998887773',
-        sub: ['Modern History', 'Indian Polity', 'Geography'],
-        exam: ['UPSC Prelims', 'UPSC Mains', 'State PCS'],
-        qualifications: ['M.A. Political Science, JNU', 'UGC NET JRF'],
-        certifications: ['State PCS Interview Appeared', 'UPSC Mains 3 Times'],
-        experience: 10,
-        city: 'Pune',
-        area: 'FC Road',
-        fullAddress: 'Flat 302, Deccan Chambers, FC Road, Pune, Maharashtra',
-        pincode: '411004',
-        lat: 18.5204,
-        lng: 73.8567,
-        feeAmount: 2000,
-        feePeriod: 'monthly',
-        teachingMode: 'home',
-        rating: 4.7,
-        bio: 'Specialist in UPSC General Studies and answer-writing frameworks. Mentored 40+ officers across Central & State services.'
-      },
-      {
-        name: 'Neha Gupta',
-        email: 'neha@example.com',
-        phone: '9998887774',
-        sub: ['English Literature', 'Grammar', 'Verbal Ability'],
-        exam: ['SSC CGL', 'Banking PO', 'Board Exams'],
-        qualifications: ['M.A. English, University of Mumbai', 'CELTA Certified'],
-        certifications: ['CTET Qualified', 'IELTS 8.5 Band'],
-        experience: 5,
-        city: 'Mumbai',
-        area: 'Andheri West',
-        fullAddress: 'A-201, Crystal Plaza, New Link Rd, Andheri West, Mumbai',
-        pincode: '400053',
-        lat: 19.1363,
-        lng: 72.8277,
-        feeAmount: 1800,
-        feePeriod: 'monthly',
-        teachingMode: 'all',
-        rating: 4.9,
-        bio: 'Interactive communication and grammar specialist. Proven shortcuts for comprehension and vocabulary retention.'
-      },
-      {
-        name: 'Karan Patel',
-        email: 'karan@example.com',
-        phone: '9998887775',
-        sub: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry'],
-        exam: ['JEE Main', 'NEET', 'GUJCET'],
-        qualifications: ['M.Tech Chemical Engineering, Nirma University'],
-        certifications: ['GATE Qualified (99.2 Percentile)'],
-        experience: 7,
-        city: 'Ahmedabad',
-        area: 'Navrangpura',
-        fullAddress: 'Shop 12, University Plaza, Navrangpura, Ahmedabad, Gujarat',
-        pincode: '380009',
-        lat: 23.0365,
-        lng: 72.5611,
-        feeAmount: 2200,
-        feePeriod: 'monthly',
-        teachingMode: 'all',
-        rating: 4.8,
-        bio: 'Demystifying Organic reaction mechanisms with step-by-step logic. Comprehensive test series and doubt clearing sessions.'
-      },
-      {
-        name: 'Anjali Verma',
-        email: 'anjali@example.com',
-        phone: '9998887776',
-        sub: ['Accountancy', 'Financial Management', 'Economics'],
-        exam: ['CA Foundation', 'CS Executive', 'CBSE 12th Commerce'],
-        qualifications: ['Chartered Accountant (CA)', 'B.Com Hons, SRCC'],
-        certifications: ['ICAI Member', 'NSE Certified Market Professional'],
-        experience: 9,
-        city: 'Bangalore',
-        area: 'Koramangala',
-        fullAddress: '77, 4th Block, 80 Feet Road, Koramangala, Bangalore, Karnataka',
-        pincode: '560034',
-        lat: 12.9352,
-        lng: 77.6245,
-        feeAmount: 3500,
-        feePeriod: 'monthly',
-        teachingMode: 'online',
-        rating: 5.0,
-        bio: 'Practicing Chartered Accountant with passion for teaching. Practical corporate balance sheets combined with exam strategies.'
-      }
-    ];
-
-    for (const t of teachersData) {
-      const user = await User.create({
-        name: t.name,
-        email: t.email,
-        phone: t.phone,
-        passwordHash: 'password123',
-        role: 'teacher',
-        consentGiven: true
-      });
-      await TeacherProfile.create({
-        userId: user._id,
-        subjects: t.sub,
-        exams: t.exam,
-        qualifications: t.qualifications,
-        certifications: t.certifications,
-        experience: t.experience,
-        bio: t.bio,
-        area: t.area,
-        fullAddress: t.fullAddress,
-        location: { city: t.city, state: 'India', pincode: t.pincode },
-        coordinates: { lat: t.lat, lng: t.lng },
-        fee: { amount: t.feeAmount, period: t.feePeriod },
-        teachingMode: t.teachingMode,
-        rating: t.rating,
-        approvalStatus: 'approved',
-        isVerified: true,
-        isAvailable: true,
-        privacy: { showPhone: false, showFullAddress: false, pauseProfile: false }
-      });
-    }
-
-    // Create 4 Students
-    const studentsData = [
-      {
-        name: 'Rohan Verma',
-        email: 'rohan@example.com',
-        phone: '8887776661',
-        classOrExam: 'JEE Main & Advanced 2027',
-        classLevel: 'Class 11',
-        subjectsNeeded: ['Mathematics', 'Physics'],
-        goals: 'Targeting Top 500 rank in JEE Advanced. Need intensive problem solving and calculus clarity.',
-        city: 'Delhi',
-        area: 'Rohini Sector 9',
-        fullAddress: 'House 142, Pocket 3, Rohini Sector 9, New Delhi',
-        pincode: '110085',
-        lat: 28.7144,
-        lng: 77.1245,
-        budgetMax: 5000,
-        mode: 'both',
-        isMinor: true,
-        parentConsent: true
-      },
-      {
-        name: 'Sita Sharma',
-        email: 'sita@example.com',
-        phone: '8887776662',
-        classOrExam: 'NEET 2026',
-        classLevel: 'Dropper / Repeat',
-        subjectsNeeded: ['Biology', 'Organic Chemistry'],
-        goals: 'Scored 580 last year, aiming for 670+ to secure government medical college seat.',
-        city: 'Kota',
-        area: 'Indraprastha Industrial Area',
-        fullAddress: 'Hostel Block B, Road 1, IPIA, Kota, Rajasthan',
-        pincode: '324005',
-        lat: 25.1400,
-        lng: 75.8360,
-        budgetMax: 6000,
-        mode: 'online',
-        isMinor: false,
-        parentConsent: false
-      },
-      {
-        name: 'Arjun Das',
-        email: 'arjun@example.com',
-        phone: '8887776663',
-        classOrExam: 'CBSE 12th Board',
-        classLevel: 'Class 12',
-        subjectsNeeded: ['Accountancy', 'Economics'],
-        goals: 'Aiming for 95%+ in commerce board exams to get into SRCC or Hindu College.',
-        city: 'Bangalore',
-        area: 'Indiranagar',
-        fullAddress: '12th Main Road, HAL 2nd Stage, Indiranagar, Bangalore',
-        pincode: '560038',
-        lat: 12.9716,
-        lng: 77.6412,
-        budgetMax: 4000,
-        mode: 'home',
-        isMinor: true,
-        parentConsent: true
-      },
-      {
-        name: 'Meera Patel',
-        email: 'meera@example.com',
-        phone: '8887776664',
-        classOrExam: 'UPSC CSE 2027',
-        classLevel: 'Graduation Final Year',
-        subjectsNeeded: ['Modern History', 'Indian Polity'],
-        goals: 'First attempt preparation along with college. Need guidance on GS answer-writing.',
-        city: 'Pune',
-        area: 'Kothrud',
-        fullAddress: 'B-404, Mayur Colony, Kothrud, Pune, Maharashtra',
-        pincode: '411038',
-        lat: 18.5074,
-        lng: 73.8077,
-        budgetMax: 3500,
-        mode: 'both',
-        isMinor: false,
-        parentConsent: false
-      }
-    ];
-
-    for (const s of studentsData) {
-      const user = await User.create({
-        name: s.name,
-        email: s.email,
-        phone: s.phone,
-        passwordHash: 'password123',
-        role: 'student',
-        dateOfBirth: s.isMinor ? new Date('2009-05-15') : new Date('2002-08-20'),
-        parentGuardianConsent: s.parentConsent,
-        consentGiven: true
-      });
-      await StudentProfile.create({
-        userId: user._id,
-        classOrExam: s.classOrExam,
-        classLevel: s.classLevel,
-        subjectsNeeded: s.subjectsNeeded,
-        goals: s.goals,
-        preferredTiming: 'Evening (5 PM - 8 PM)',
-        area: s.area,
-        fullAddress: s.fullAddress,
-        location: { city: s.city, state: 'India', pincode: s.pincode },
-        coordinates: { lat: s.lat, lng: s.lng },
-        budget: { min: 1000, max: s.budgetMax, period: 'monthly' },
-        preferences: { mode: s.mode, experienceMin: 2 },
-        approvalStatus: 'approved',
-        privacy: { showPhone: false, showFullAddress: false, pauseProfile: false }
-      });
-    }
-
-    // Default Widgets
+    // 4. Default Homepage Widgets
     const sections = ['hero', 'coverage', 'whyTeacherHunt', 'calculator', 'whatsapp', 'faqs'];
     const widgetsToInsert = sections.map((key, i) => ({
       sectionKey: key,
@@ -329,8 +79,9 @@ const seedData = async () => {
       isVisible: true
     }));
     await WidgetConfig.insertMany(widgetsToInsert);
+    console.log('Default widgets configured.');
 
-    // FAQs
+    // 5. Default FAQs (Bilingual English + Hindi)
     const faqData = [
       { en: 'Is ToppScorers free for teachers?', hi: 'क्या ToppScorers शिक्षकों के लिए मुफ्त है?' },
       { en: 'How are teachers verified?', hi: 'शिक्षकों का सत्यापन कैसे होता है?' },
@@ -360,13 +111,19 @@ const seedData = async () => {
       isVisible: true
     }));
     await FAQ.insertMany(faqsToInsert);
+    console.log('Default FAQs configured.');
 
-    console.log('Seeding Complete! Database is populated with rich ToppScorers data.');
+    console.log('----------------------------------------------------');
+    console.log('DATABASE WIPE & INITIALIZATION COMPLETE:');
+    console.log('- All teachers and students removed.');
+    console.log('- Only Admin account initialized: admin@toppscorers.com');
+    console.log('----------------------------------------------------');
+
     process.exit(0);
   } catch (error) {
-    console.error('Seeding Error:', error);
+    console.error('Database clearing error:', error);
     process.exit(1);
   }
 };
 
-seedData();
+cleanDatabaseAndSeedAdmin();
