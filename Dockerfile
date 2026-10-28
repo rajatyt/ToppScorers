@@ -7,7 +7,7 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
 
-ARG VITE_GOOGLE_CLIENT_ID=339763740052-eb3dhmklipu62utfjstmf56f37of85tm.apps.googleusercontent.com
+ARG VITE_GOOGLE_CLIENT_ID=1024664791682-3g3ii0da3tg3fmsk8p9gc3i4pstcecos.apps.googleusercontent.com
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 COPY client/ ./

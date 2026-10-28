@@ -270,7 +270,7 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // POST /api/auth/google
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '339763740052-eb3dhmklipu62utfjstmf56f37of85tm.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '1024664791682-3g3ii0da3tg3fmsk8p9gc3i4pstcecos.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 router.post('/google', async (req, res) => {

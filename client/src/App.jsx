@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '339763740052-eb3dhmklipu62utfjstmf56f37of85tm.apps.googleusercontent.com';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1024664791682-3g3ii0da3tg3fmsk8p9gc3i4pstcecos.apps.googleusercontent.com';
 
 function AppContent() {
   const location = useLocation();
