@@ -95,12 +95,33 @@ router.delete('/users/:id', async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (user.role === 'teacher') await TeacherProfile.deleteOne({ userId: user._id });
-    if (user.role === 'student') await StudentProfile.deleteOne({ userId: user._id });
-    await ActiveSession.deleteMany({ userId: user._id });
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Administrator accounts cannot be deleted directly.' });
+    }
+
+    const userId = user._id;
+    await TeacherProfile.deleteMany({ userId });
+    await StudentProfile.deleteMany({ userId });
+    await ActiveSession.deleteMany({ userId });
+    await ConnectionRequest.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }]
+    });
+    await SavedProfile.deleteMany({
+      $or: [{ userId }, { targetUserId: userId }]
+    });
+    await Report.deleteMany({
+      $or: [{ reporterId: userId }, { targetId: userId }]
+    });
+    await Block.deleteMany({
+      $or: [{ blockerId: userId }, { blockedId: userId }]
+    });
+    await ProfileViewLog.deleteMany({
+      $or: [{ viewerId: userId }, { targetId: userId }]
+    });
+    await Query.deleteMany({ userId });
     await user.deleteOne();
 
-    res.json({ message: 'User deleted successfully' });
+    res.json({ message: 'User and all associated data deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -409,9 +430,19 @@ router.delete('/teachers/:id', async (req, res) => {
     const profile = await TeacherProfile.findById(req.params.id);
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     
-    await User.findByIdAndDelete(profile.userId);
+    const userId = profile.userId;
+    if (userId) {
+      await User.findByIdAndDelete(userId);
+      await ActiveSession.deleteMany({ userId });
+      await ConnectionRequest.deleteMany({ $or: [{ fromUserId: userId }, { toUserId: userId }] });
+      await SavedProfile.deleteMany({ $or: [{ userId }, { targetUserId: userId }] });
+      await Report.deleteMany({ $or: [{ reporterId: userId }, { targetId: userId }] });
+      await Block.deleteMany({ $or: [{ blockerId: userId }, { blockedId: userId }] });
+      await ProfileViewLog.deleteMany({ $or: [{ viewerId: userId }, { targetId: userId }] });
+      await Query.deleteMany({ userId });
+    }
     await profile.deleteOne();
-    res.json({ message: 'Teacher deleted' });
+    res.json({ message: 'Teacher and associated user account permanently deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -423,9 +454,19 @@ router.delete('/students/:id', async (req, res) => {
     const profile = await StudentProfile.findById(req.params.id);
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     
-    await User.findByIdAndDelete(profile.userId);
+    const userId = profile.userId;
+    if (userId) {
+      await User.findByIdAndDelete(userId);
+      await ActiveSession.deleteMany({ userId });
+      await ConnectionRequest.deleteMany({ $or: [{ fromUserId: userId }, { toUserId: userId }] });
+      await SavedProfile.deleteMany({ $or: [{ userId }, { targetUserId: userId }] });
+      await Report.deleteMany({ $or: [{ reporterId: userId }, { targetId: userId }] });
+      await Block.deleteMany({ $or: [{ blockerId: userId }, { blockedId: userId }] });
+      await ProfileViewLog.deleteMany({ $or: [{ viewerId: userId }, { targetId: userId }] });
+      await Query.deleteMany({ userId });
+    }
     await profile.deleteOne();
-    res.json({ message: 'Student deleted' });
+    res.json({ message: 'Student and associated user account permanently deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

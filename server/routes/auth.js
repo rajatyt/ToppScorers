@@ -8,6 +8,9 @@ import ActiveSession from '../models/ActiveSession.js';
 import ConnectionRequest from '../models/ConnectionRequest.js';
 import ProfileViewLog from '../models/ProfileViewLog.js';
 import SavedProfile from '../models/SavedProfile.js';
+import Report from '../models/Report.js';
+import Block from '../models/Block.js';
+import Query from '../models/Query.js';
 import { authenticate } from '../middleware/auth.js';
 import { serializeProfile } from '../utils/serializeProfile.js';
 import { 
@@ -577,28 +580,58 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
-// DELETE /api/auth/account - Delete / Deactivate own account (DPDP compliance)
+// DELETE /api/auth/account - Permanently delete own account and all associated data
 router.delete('/account', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Soft delete & flag
-    await User.findByIdAndUpdate(userId, {
-      isActive: false,
-      accountDeletionRequested: new Date()
-    });
+    // Prevent deleting admin account via this route
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ message: 'Admin accounts cannot be deleted from user settings.' });
+    }
 
-    // Clean up active sessions
+    // 1. Delete associated profile (Teacher or Student)
+    await TeacherProfile.deleteMany({ userId });
+    await StudentProfile.deleteMany({ userId });
+
+    // 2. Clean up all active sessions
     await ActiveSession.deleteMany({ userId });
 
-    // Cancel pending connection requests
+    // 3. Remove all connection requests (incoming and outgoing)
     await ConnectionRequest.deleteMany({
-      $or: [{ fromUserId: userId }, { toUserId: userId }],
-      status: 'pending'
+      $or: [{ fromUserId: userId }, { toUserId: userId }]
     });
 
-    res.clearCookie('token');
-    res.json({ message: 'Account has been deactivated and scheduled for permanent deletion under privacy terms.' });
+    // 4. Remove saved profiles and bookmarks
+    await SavedProfile.deleteMany({
+      $or: [{ userId }, { targetUserId: userId }]
+    });
+
+    // 5. Remove submitted and received reports
+    await Report.deleteMany({
+      $or: [{ reporterId: userId }, { targetId: userId }]
+    });
+
+    // 6. Remove blocks
+    await Block.deleteMany({
+      $or: [{ blockerId: userId }, { blockedId: userId }]
+    });
+
+    // 7. Remove profile view logs
+    await ProfileViewLog.deleteMany({
+      $or: [{ viewerId: userId }, { targetId: userId }]
+    });
+
+    // 8. Remove queries/support tickets
+    await Query.deleteMany({ userId });
+
+    // 9. Permanently delete the user record
+    await User.findByIdAndDelete(userId);
+
+    // 10. Clear authentication cookies
+    clearAuthCookies(res);
+
+    res.json({ message: 'Your account and all associated data have been permanently deleted.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

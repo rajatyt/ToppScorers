@@ -183,13 +183,13 @@ const Settings = () => {
 
   const handleDeleteAccount = async () => {
     const confirmed = window.prompt(
-      'Are you sure you want to deactivate and schedule your account for deletion under India DPDP Act 2023? Type "DELETE" to confirm:'
+      'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone. Type "DELETE" to confirm:'
     );
     if (confirmed !== 'DELETE') return;
 
     try {
       await api.delete('/auth/account');
-      toast.success('Account deactivated and scheduled for deletion');
+      toast.success('Your account and all associated data have been permanently deleted');
       await logout();
       navigate('/');
     } catch (err) {
@@ -600,7 +600,7 @@ const Settings = () => {
                     Danger Zone: Delete Account
                   </h3>
                   <p className="text-[11px] text-rose-700 max-w-md">
-                    Permanently deactivate your account, delete your public profile, clear active sessions, and schedule data erasure.
+                    Permanently delete your account, remove your public profile, clear active sessions, and erase all your data from the platform.
                   </p>
                 </div>
                 <button
