@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import {
   FaGraduationCap, FaChalkboardTeacher, FaUserGraduate, FaBook,
   FaPencilAlt, FaFlask, FaAtom, FaCalculator, FaGlobe, FaLaptop,
-  FaLightbulb, FaMicroscope, FaMapMarkerAlt,
+  FaLightbulb, FaMicroscope, FaMapMarkerAlt, FaExclamationCircle,
 } from 'react-icons/fa';
 import {
   FiLogIn, FiUserCheck, FiBookOpen, FiArrowRight, FiArrowLeft,
@@ -73,18 +73,26 @@ const FloatingBackground = () => {
   );
 };
 
-const Input = ({ icon: Ic, label, ...props }) => (
+const Input = ({ icon: Ic, label, error, ...props }) => (
   <div>
     <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
-      <Ic className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+      <Ic className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-rose-500' : 'text-slate-400'}`} size={16} />
       <input
         {...props}
-        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 focus:bg-white border border-slate-200/90 rounded-xl text-sm text-slate-900 font-medium
-                   placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500
-                   transition-all duration-200 shadow-2xs"
+        className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 shadow-2xs focus:outline-none ${
+          error
+            ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 placeholder:text-rose-300 focus:ring-4 focus:ring-rose-500/15 focus:border-rose-600'
+            : 'bg-slate-50/70 focus:bg-white border border-slate-200/90 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500'
+        }`}
       />
     </div>
+    {error && (
+      <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+        <FaExclamationCircle className="shrink-0 text-rose-500" size={13} />
+        <span>{error}</span>
+      </p>
+    )}
   </div>
 );
 
@@ -98,6 +106,8 @@ const Auth = () => {
   // 'cards' | 'login' | 'student' | 'teacher' | 'forgot'
   const [view, setView] = useState('cards');
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
 
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState('');
@@ -141,17 +151,62 @@ const Auth = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (generalError) setGeneralError('');
+  };
+
+  const switchView = (newView) => {
+    setFieldErrors({});
+    setGeneralError('');
+    setView(newView);
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) { toast.error(t('auth.enterEmailPassword')); return; }
+    const errors = {};
+    if (!formData.email || !formData.email.trim()) {
+      errors.email = 'Please enter your registered email address.';
+    }
+    if (!formData.password) {
+      errors.password = 'Please enter your password.';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error('Please enter both your email and password.');
+      return;
+    }
+
     setLoading(true);
+    setFieldErrors({});
+    setGeneralError('');
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await login(formData.email.trim(), formData.password);
       toast.success(t('auth.loginSuccess'));
       navigate(data.user?.role === 'admin' ? '/admin' : '/');
-    } catch (err) { toast.error(err.response?.data?.message || t('auth.loginFailed')); } finally { setLoading(false); }
+    } catch (err) {
+      const backendMsg = err.response?.data?.message || t('auth.loginFailed');
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors && typeof backendErrors === 'object' && Object.keys(backendErrors).length > 0) {
+        setFieldErrors(backendErrors);
+      } else {
+        const lowerMsg = backendMsg.toLowerCase();
+        if (lowerMsg.includes('password') || lowerMsg.includes('attempt')) {
+          setFieldErrors({ password: backendMsg });
+        } else if (lowerMsg.includes('locked') || lowerMsg.includes('lockout')) {
+          setFieldErrors({ email: backendMsg, password: backendMsg });
+        } else if (lowerMsg.includes('account') || lowerMsg.includes('email') || lowerMsg.includes('user not found')) {
+          setFieldErrors({ email: backendMsg });
+        } else {
+          setFieldErrors({ password: backendMsg });
+        }
+      }
+      setGeneralError(backendMsg);
+      toast.error(backendMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = async (e) => {
@@ -177,25 +232,46 @@ const Auth = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) { toast.error(t('auth.passwordsMismatch')); return; }
+    const errors = {};
+    if (!formData.name || formData.name.trim().length < 2) {
+      errors.name = 'Please provide your full legal name (at least 2 characters).';
+    }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = 'Please provide a valid email address.';
+    }
+    if (view === 'teacher' && (!formData.phone || formData.phone.replace(/\D/g, '').length < 10)) {
+      errors.phone = 'Teachers must provide a valid 10-digit mobile number for verification.';
+    }
+    if (!formData.password || formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters long and contain letters and numbers.';
+    }
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = t('auth.passwordsMismatch') || 'Passwords do not match.';
+    }
     if (!formData.district) {
-      toast.error('Please select your District (Prayagraj).');
-      return;
+      errors.district = 'Please select your District (Prayagraj).';
     }
     if (!formData.area) {
-      toast.error('Please select your Area / Locality.');
-      return;
+      errors.area = 'Please select your Area / Locality.';
     }
     if (!formData.consentGiven) {
-      toast.error('You must consent to data processing under DPDP Act 2023 to register.');
+      errors.consentGiven = 'You must consent to data processing under DPDP Act 2023 to register.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error(Object.values(errors)[0]);
       return;
     }
+
     setLoading(true);
+    setFieldErrors({});
+    setGeneralError('');
     try {
       await signup({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
         password: formData.password,
         role: view,
         city: formData.district,
@@ -206,7 +282,17 @@ const Auth = () => {
       });
       toast.success(t('auth.signupSuccess'));
       navigate('/');
-    } catch (err) { toast.error(err.response?.data?.message || t('auth.registrationFailed')); } finally { setLoading(false); }
+    } catch (err) {
+      const backendMsg = err.response?.data?.message || t('auth.registrationFailed');
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors && typeof backendErrors === 'object') {
+        setFieldErrors(backendErrors);
+      }
+      setGeneralError(backendMsg);
+      toast.error(backendMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -297,7 +383,7 @@ const Auth = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
         {/* Sign In Card */}
         <button
-          onClick={() => setView('login')}
+          onClick={() => switchView('login')}
           className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
                      hover:border-amber-400 hover:shadow-card-hover hover:shadow-amber-500/10 transition-all duration-300
                      hover:-translate-y-1.5 text-left cursor-pointer"
@@ -320,7 +406,7 @@ const Auth = () => {
 
         {/* Student Card */}
         <button
-          onClick={() => setView('student')}
+          onClick={() => switchView('student')}
           className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
                      hover:border-emerald-400 hover:shadow-card-hover hover:shadow-emerald-500/10 transition-all duration-300
                      hover:-translate-y-1.5 text-left cursor-pointer"
@@ -343,7 +429,7 @@ const Auth = () => {
 
         {/* Teacher Card */}
         <button
-          onClick={() => setView('teacher')}
+          onClick={() => switchView('teacher')}
           className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200/80
                      hover:border-amber-400 hover:shadow-card-hover hover:shadow-amber-500/10 transition-all duration-300
                      hover:-translate-y-1.5 text-left cursor-pointer"
@@ -404,7 +490,7 @@ const Auth = () => {
           {/* Back button */}
           <button
             type="button"
-            onClick={() => setView('cards')}
+            onClick={() => switchView('cards')}
             className="flex items-center text-xs text-slate-400 hover:text-slate-700 font-medium mb-5 transition-colors group"
           >
             <FiArrowLeft className="mr-1.5 group-hover:-translate-x-0.5 transition-transform" size={14} />
@@ -442,11 +528,38 @@ const Auth = () => {
           </div>
 
           {/* Form */}
+          {generalError && (
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2.5 animate-fadeIn">
+              <FaExclamationCircle className="text-rose-500 shrink-0 mt-0.5" size={15} />
+              <span className="flex-1 leading-relaxed">{generalError}</span>
+            </div>
+          )}
+
           {isLogin ? (
             <form className="space-y-4" onSubmit={handleLogin}>
-              <Input icon={FiMail} label={t('auth.email')} name="email" type="email" required placeholder={t('auth.emailPlaceholder')} value={formData.email} onChange={handleChange} />
+              <Input
+                icon={FiMail}
+                label={t('auth.email')}
+                name="email"
+                type="email"
+                required
+                placeholder={t('auth.emailPlaceholder')}
+                value={formData.email}
+                onChange={handleChange}
+                error={fieldErrors.email}
+              />
               <div>
-                <Input icon={FiLock} label={t('auth.password')} name="password" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.password} onChange={handleChange} />
+                <Input
+                  icon={FiLock}
+                  label={t('auth.password')}
+                  name="password"
+                  type="password"
+                  required
+                  placeholder={t('auth.passwordPlaceholder')}
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={fieldErrors.password}
+                />
                 <div className="flex justify-end mt-1.5">
                   <button
                     type="button"
@@ -454,7 +567,7 @@ const Auth = () => {
                       setForgotEmail(formData.email || '');
                       setForgotSubmitted(false);
                       setForgotDevUrl('');
-                      setView('forgot');
+                      switchView('forgot');
                     }}
                     className="text-xs font-semibold text-amber-600 hover:text-amber-500 hover:underline transition-colors cursor-pointer"
                   >
@@ -470,15 +583,49 @@ const Auth = () => {
             </form>
           ) : (
             <form className="space-y-3.5" onSubmit={handleSignup}>
-              <Input icon={FiUser} label={t('auth.name')} name="name" type="text" required placeholder={t('auth.namePlaceholder')} value={formData.name} onChange={handleChange} />
-              <Input icon={FiMail} label={t('auth.email')} name="email" type="email" required placeholder={t('auth.emailPlaceholder')} value={formData.email} onChange={handleChange} />
-              <Input icon={FiPhone} label={t('auth.phone')} name="phone" type="tel" required placeholder={t('auth.phonePlaceholder')} value={formData.phone} onChange={handleChange} />
+              <Input
+                icon={FiUser}
+                label={t('auth.name')}
+                name="name"
+                type="text"
+                required
+                placeholder={t('auth.namePlaceholder')}
+                value={formData.name}
+                onChange={handleChange}
+                error={fieldErrors.name}
+              />
+              <Input
+                icon={FiMail}
+                label={t('auth.email')}
+                name="email"
+                type="email"
+                required
+                placeholder={t('auth.emailPlaceholder')}
+                value={formData.email}
+                onChange={handleChange}
+                error={fieldErrors.email}
+              />
+              <Input
+                icon={FiPhone}
+                label={t('auth.phone')}
+                name="phone"
+                type="tel"
+                required={view === 'teacher'}
+                placeholder={t('auth.phonePlaceholder')}
+                value={formData.phone}
+                onChange={handleChange}
+                error={fieldErrors.phone}
+              />
               
               {/* Location: District and Cascading Area */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/60 rounded-xl border border-amber-200/70">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl border transition-all ${
+                fieldErrors.district || fieldErrors.area
+                  ? 'bg-rose-50/50 border-rose-300'
+                  : 'bg-amber-50/60 border-amber-200/70'
+              }`}>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
-                    <FaMapMarkerAlt className="text-amber-500 mr-1" size={12} />
+                    <FaMapMarkerAlt className={fieldErrors.district ? 'text-rose-500 mr-1' : 'text-amber-500 mr-1'} size={12} />
                     District *
                   </label>
                   <select
@@ -490,29 +637,47 @@ const Auth = () => {
                         district: e.target.value,
                         area: ''
                       });
+                      setFieldErrors((prev) => ({ ...prev, district: '', area: '' }));
                     }}
                     required
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium"
+                    className={`w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+                      fieldErrors.district
+                        ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 focus:ring-4 focus:ring-rose-500/15'
+                        : 'bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30'
+                    }`}
                   >
                     <option value="">Select District</option>
                     {DISTRICTS.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
+                  {fieldErrors.district && (
+                    <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1 animate-fadeIn">
+                      <FaExclamationCircle className="shrink-0 text-rose-500" size={12} />
+                      <span>{fieldErrors.district}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
-                    <FaMapMarkerAlt className="text-amber-500 mr-1" size={12} />
+                    <FaMapMarkerAlt className={fieldErrors.area ? 'text-rose-500 mr-1' : 'text-amber-500 mr-1'} size={12} />
                     Area / Locality *
                   </label>
                   <select
                     name="area"
                     value={formData.area}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setFieldErrors((prev) => ({ ...prev, area: '' }));
+                    }}
                     disabled={!formData.district}
                     required
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-medium disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    className={`w-full px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed ${
+                      fieldErrors.area
+                        ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 focus:ring-4 focus:ring-rose-500/15'
+                        : 'bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30'
+                    }`}
                   >
                     <option value="">
                       {formData.district ? `Select Area in ${formData.district}` : 'Select District first'}
@@ -521,11 +686,37 @@ const Auth = () => {
                       <option key={a} value={a}>{a}</option>
                     ))}
                   </select>
+                  {fieldErrors.area && (
+                    <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1 animate-fadeIn">
+                      <FaExclamationCircle className="shrink-0 text-rose-500" size={12} />
+                      <span>{fieldErrors.area}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <Input icon={FiLock} label={t('auth.password')} name="password" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.password} onChange={handleChange} />
-              <Input icon={FiLock} label={t('auth.confirmPassword')} name="confirmPassword" type="password" required placeholder={t('auth.passwordPlaceholder')} value={formData.confirmPassword} onChange={handleChange} />
+              <Input
+                icon={FiLock}
+                label={t('auth.password')}
+                name="password"
+                type="password"
+                required
+                placeholder={t('auth.passwordPlaceholder')}
+                value={formData.password}
+                onChange={handleChange}
+                error={fieldErrors.password}
+              />
+              <Input
+                icon={FiLock}
+                label={t('auth.confirmPassword')}
+                name="confirmPassword"
+                type="password"
+                required
+                placeholder={t('auth.passwordPlaceholder')}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={fieldErrors.confirmPassword}
+              />
               
               {/* Optional Date of Birth */}
               <div>
@@ -559,27 +750,42 @@ const Auth = () => {
               )}
 
               {/* DPDP Act 2023 Consent Checkbox */}
-              <div className="flex items-start space-x-2 pt-1 text-[11px] text-slate-600">
-                <input
-                  type="checkbox"
-                  id="consentGiven"
-                  name="consentGiven"
-                  required
-                  checked={formData.consentGiven}
-                  onChange={handleChange}
-                  className="mt-0.5 rounded text-amber-600 focus:ring-amber-500"
-                />
-                <label htmlFor="consentGiven">
-                  I consent to the collection and processing of my profile details under India's{' '}
-                  <strong>DPDP Act, 2023</strong> and agree to the{' '}
-                  <Link to="/privacy-policy" target="_blank" className="text-amber-600 underline">
-                    Privacy Policy
-                  </Link>{' '}
-                  and{' '}
-                  <Link to="/terms" target="_blank" className="text-amber-600 underline">
-                    Terms
-                  </Link>.
-                </label>
+              <div className={`p-3 rounded-xl transition-all ${
+                fieldErrors.consentGiven ? 'border-2 border-rose-500 bg-rose-50/50' : 'border border-transparent'
+              }`}>
+                <div className="flex items-start space-x-2 text-[11px] text-slate-600">
+                  <input
+                    type="checkbox"
+                    id="consentGiven"
+                    name="consentGiven"
+                    required
+                    checked={formData.consentGiven}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setFieldErrors((prev) => ({ ...prev, consentGiven: '' }));
+                    }}
+                    className={`mt-0.5 rounded ${
+                      fieldErrors.consentGiven ? 'text-rose-600 ring-2 ring-rose-500' : 'text-amber-600 focus:ring-amber-500'
+                    }`}
+                  />
+                  <label htmlFor="consentGiven" className={fieldErrors.consentGiven ? 'text-rose-900 font-semibold' : ''}>
+                    I consent to the collection and processing of my profile details under India's{' '}
+                    <strong>DPDP Act, 2023</strong> and agree to the{' '}
+                    <Link to="/privacy-policy" target="_blank" className="text-amber-600 underline">
+                      Privacy Policy
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/terms" target="_blank" className="text-amber-600 underline">
+                      Terms
+                    </Link>.
+                  </label>
+                </div>
+                {fieldErrors.consentGiven && (
+                  <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                    <FaExclamationCircle className="shrink-0 text-rose-500" size={13} />
+                    <span>{fieldErrors.consentGiven}</span>
+                  </p>
+                )}
               </div>
 
               <button type="submit" disabled={loading}
@@ -594,11 +800,11 @@ const Auth = () => {
           <p className="mt-5 text-center text-xs text-slate-400">
             {isLogin ? (
               <>{t('auth.noAccount')}{' '}
-                <button type="button" onClick={() => setView('cards')} className="text-amber-600 font-semibold hover:underline">{t('auth.joinNow')}</button>
+                <button type="button" onClick={() => switchView('cards')} className="text-amber-600 font-semibold hover:underline">{t('auth.joinNow')}</button>
               </>
             ) : (
               <>{t('auth.alreadyRegistered')}{' '}
-                <button type="button" onClick={() => setView('login')} className="text-amber-600 font-semibold hover:underline">{t('auth.signIn')}</button>
+                <button type="button" onClick={() => switchView('login')} className="text-amber-600 font-semibold hover:underline">{t('auth.signIn')}</button>
               </>
             )}
           </p>
@@ -615,7 +821,7 @@ const Auth = () => {
           {/* Back button */}
           <button
             type="button"
-            onClick={() => setView('login')}
+            onClick={() => switchView('login')}
             className="flex items-center text-xs text-slate-400 hover:text-slate-700 font-medium mb-5 transition-colors group cursor-pointer"
           >
             <FiArrowLeft className="mr-1.5 group-hover:-translate-x-0.5 transition-transform" size={14} />

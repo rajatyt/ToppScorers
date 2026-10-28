@@ -119,3 +119,75 @@ export const validateUniquePhone = async (phone, excludeUserId = null, required 
 
   return { isValid: true, phone: trimmed };
 };
+
+/**
+ * Validates password strength (min 8 chars, at least 1 letter and 1 number/symbol).
+ * @param {string} password 
+ * @returns {{ isValid: boolean, message?: string }}
+ */
+export const validatePasswordStrength = (password) => {
+  if (!password || typeof password !== 'string') {
+    return { isValid: false, message: 'Password is required.' };
+  }
+
+  if (password.length < 8) {
+    return { isValid: false, message: 'Password must be at least 8 characters long.' };
+  }
+
+  if (password.length > 128) {
+    return { isValid: false, message: 'Password must not exceed 128 characters.' };
+  }
+
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasDigitOrSymbol = /[0-9\W_]/.test(password);
+
+  if (!hasLetter || !hasDigitOrSymbol) {
+    return {
+      isValid: false,
+      message: 'Password must contain at least one letter and at least one number or special character.'
+    };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Sanitizes and validates a full name.
+ * @param {string} name 
+ * @returns {{ isValid: boolean, message?: string, name?: string }}
+ */
+export const cleanAndValidateName = (name) => {
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return { isValid: false, message: 'Full name is required.' };
+  }
+
+  // Strip HTML tags and control characters
+  const cleaned = name.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
+
+  if (cleaned.length < 2) {
+    return { isValid: false, message: 'Full name must be at least 2 characters.' };
+  }
+
+  if (cleaned.length > 70) {
+    return { isValid: false, message: 'Full name must not exceed 70 characters.' };
+  }
+
+  // Reject names with dangerous scripting symbols
+  if (/[<>{}$`\\]/.test(cleaned)) {
+    return { isValid: false, message: 'Name contains invalid characters.' };
+  }
+
+  return { isValid: true, name: cleaned };
+};
+
+/**
+ * General string sanitizer: strips HTML tags, control chars, limits length.
+ */
+export const sanitizeString = (str, maxLength = 500) => {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .trim()
+    .slice(0, maxLength);
+};

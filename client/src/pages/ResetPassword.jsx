@@ -10,7 +10,7 @@ import {
 } from 'react-icons/fa';
 import {
   FiLock, FiEye, FiEyeOff, FiCheckCircle, FiAlertTriangle,
-  FiArrowLeft, FiShield, FiCheck, FiX
+  FiArrowLeft, FiShield, FiCheck, FiX, FiAlertCircle
 } from 'react-icons/fi';
 
 /* ────────────────────────────  Floating Background Icons  ──────────────────────────── */
@@ -84,6 +84,8 @@ export default function ResetPassword() {
 
   const [submitting, setSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -147,18 +149,29 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errors = {};
 
     if (!password || password.length < 8) {
-      toast.error('Password must be at least 8 characters long.');
-      return;
+      errors.password = 'Password must be at least 8 characters long.';
+    } else if (!/(?=.*[a-zA-Z])(?=.*[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/.test(password)) {
+      errors.password = 'Password must contain at least one letter and one number or symbol.';
     }
 
-    if (password !== confirmPassword) {
-      toast.error(t('auth.passwordsMismatch') || 'Passwords do not match.');
+    if (!confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password.';
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = t('auth.passwordsMismatch') || 'Passwords do not match.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error(Object.values(errors)[0]);
       return;
     }
 
     setSubmitting(true);
+    setFieldErrors({});
+    setGeneralError('');
     try {
       const res = await api.post('/auth/reset-password', {
         token,
@@ -168,7 +181,10 @@ export default function ResetPassword() {
       setResetSuccess(true);
       toast.success(res.data?.message || t('auth.passwordResetSuccess'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reset password. Please try again.');
+      const msg = err.response?.data?.message || 'Failed to reset password. Please try again.';
+      setGeneralError(msg);
+      setFieldErrors({ password: msg });
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -281,21 +297,36 @@ export default function ResetPassword() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {generalError && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2.5 animate-fadeIn">
+                    <FiAlertCircle className="text-rose-500 shrink-0 mt-0.5" size={15} />
+                    <span className="flex-1 leading-relaxed">{generalError}</span>
+                  </div>
+                )}
+
                 {/* New Password */}
                 <div>
                   <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
                     {t('auth.newPassword')} *
                   </label>
                   <div className="relative">
-                    <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <FiLock className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${fieldErrors.password ? 'text-rose-500' : 'text-slate-400'}`} size={16} />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
+                        if (generalError) setGeneralError('');
+                      }}
                       placeholder={t('auth.newPasswordPlaceholder')}
                       required
                       minLength={8}
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 focus:bg-white border border-slate-200/90 rounded-xl text-sm text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 transition-all shadow-2xs"
+                      className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm font-medium transition-all shadow-2xs focus:outline-none ${
+                        fieldErrors.password
+                          ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 placeholder:text-rose-300 focus:ring-4 focus:ring-rose-500/15 focus:border-rose-600'
+                          : 'bg-slate-50/70 focus:bg-white border border-slate-200/90 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500'
+                      }`}
                     />
                     <button
                       type="button"
@@ -306,6 +337,12 @@ export default function ResetPassword() {
                       {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                     </button>
                   </div>
+                  {fieldErrors.password && (
+                    <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1.5 animate-fadeIn">
+                      <FiAlertCircle className="shrink-0 text-rose-500" size={13} />
+                      <span>{fieldErrors.password}</span>
+                    </p>
+                  )}
 
                   {/* Password Strength Meter */}
                   {password && (
@@ -327,14 +364,22 @@ export default function ResetPassword() {
                     {t('auth.confirmNewPassword')} *
                   </label>
                   <div className="relative">
-                    <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <FiLock className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${fieldErrors.confirmPassword ? 'text-rose-500' : 'text-slate-400'}`} size={16} />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (fieldErrors.confirmPassword) setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                        if (generalError) setGeneralError('');
+                      }}
                       placeholder={t('auth.confirmNewPasswordPlaceholder')}
                       required
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 focus:bg-white border border-slate-200/90 rounded-xl text-sm text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 transition-all shadow-2xs"
+                      className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm font-medium transition-all shadow-2xs focus:outline-none ${
+                        fieldErrors.confirmPassword
+                          ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 placeholder:text-rose-300 focus:ring-4 focus:ring-rose-500/15 focus:border-rose-600'
+                          : 'bg-slate-50/70 focus:bg-white border border-slate-200/90 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500'
+                      }`}
                     />
                     <button
                       type="button"
@@ -345,12 +390,18 @@ export default function ResetPassword() {
                       {showConfirmPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                     </button>
                   </div>
-                  {confirmPassword && password !== confirmPassword && (
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1.5 animate-fadeIn">
+                      <FiAlertCircle className="shrink-0 text-rose-500" size={13} />
+                      <span>{fieldErrors.confirmPassword}</span>
+                    </p>
+                  )}
+                  {!fieldErrors.confirmPassword && confirmPassword && password !== confirmPassword && (
                     <p className="text-[11px] text-rose-500 font-semibold mt-1">
                       {t('auth.passwordsMismatch')}
                     </p>
                   )}
-                  {confirmPassword && password === confirmPassword && (
+                  {!fieldErrors.confirmPassword && confirmPassword && password === confirmPassword && (
                     <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center">
                       <FiCheck className="mr-1" size={12} /> Passwords match
                     </p>

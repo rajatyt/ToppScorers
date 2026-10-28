@@ -21,15 +21,26 @@ import {
   clearAdminCookies
 } from '../utils/tokenService.js';
 import crypto from 'crypto';
-import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
+import { 
+  validateUniqueEmail, 
+  validateUniquePhone,
+  validatePasswordStrength,
+  cleanAndValidateName,
+  sanitizeString
+} from '../utils/identityValidator.js';
 import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
-import { forgotPasswordLimiter } from '../middleware/rateLimiter.js';
+import { 
+  forgotPasswordLimiter, 
+  authLimiter, 
+  signupLimiter, 
+  adminAuthLimiter 
+} from '../middleware/rateLimiter.js';
 import { sendPasswordResetEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
-// POST /api/auth/signup
-router.post('/signup', async (req, res) => {
+// POST /api/auth/signup - Clean, validate, and create account
+router.post('/signup', signupLimiter, async (req, res) => {
   try {
     const {
       name,
@@ -43,45 +54,84 @@ router.post('/signup', async (req, res) => {
       city,
       area
     } = req.body;
+
+    const errors = {};
     
+    // 1. Role validation
     if (!['student', 'teacher'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Must be student or teacher.' });
+      errors.role = 'Please select a valid role (Student or Teacher).';
     }
 
-    if (consentGiven === false) {
-      return res.status(400).json({ message: 'You must accept the terms and consent to data processing under DPDP Act 2023.' });
+    // 2. Consent validation
+    if (consentGiven === false || consentGiven === undefined) {
+      errors.consentGiven = 'You must accept the terms and consent to data processing under DPDP Act 2023.';
     }
 
+    // 3. Name validation & cleaning
+    const nameValidation = cleanAndValidateName(name);
+    if (!nameValidation.isValid) {
+      errors.name = nameValidation.message;
+    }
+
+    // 4. Email validation & uniqueness
     const emailValidation = await validateUniqueEmail(email);
     if (!emailValidation.isValid) {
-      return res.status(400).json({ message: emailValidation.message });
+      errors.email = emailValidation.message;
     }
 
+    // 5. Password strength validation
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      errors.password = passwordValidation.message;
+    }
+
+    // 6. Phone validation & uniqueness (required for teachers, optional for students)
     let validatedPhone = '';
+    const isPhoneRequired = role === 'teacher';
     if (phone && phone.trim()) {
-      const phoneValidation = await validateUniquePhone(phone, null, true);
+      const phoneValidation = await validateUniquePhone(phone, null, isPhoneRequired);
       if (!phoneValidation.isValid) {
-        return res.status(400).json({ message: phoneValidation.message });
+        errors.phone = phoneValidation.message;
+      } else {
+        validatedPhone = phoneValidation.phone;
       }
-      validatedPhone = phoneValidation.phone;
+    } else if (isPhoneRequired) {
+      errors.phone = 'Mobile phone number is required for teacher registration.';
     }
 
+    // 7. Location validation
+    const initialCity = sanitizeString(city, 80);
+    const initialArea = sanitizeString(area, 80);
+    if (!initialCity) {
+      errors.district = 'Please select your District.';
+    }
+    if (!initialArea) {
+      errors.area = 'Please select your Area / Locality.';
+    }
+
+    // If any validation errors exist, return structured field errors
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: Object.values(errors)[0] || 'Please fix the highlighted fields.',
+        errors
+      });
+    }
+
+    // Create user with sanitized fields
     const user = await User.create({
-      name,
+      name: nameValidation.name,
       email: emailValidation.email,
       phone: validatedPhone,
-      passwordHash: password,
+      passwordHash: password, // Pre-save hook hashes with 12 rounds of bcrypt
       role,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       parentGuardianConsent: Boolean(parentGuardianConsent),
       consentGiven: true,
-      consentTimestamp: new Date()
+      consentTimestamp: new Date(),
+      failedLoginAttempts: 0
     });
 
     let profile;
-    const initialCity = city ? city.trim() : '';
-    const initialArea = area ? area.trim() : '';
-
     if (role === 'teacher') {
       const jobId = await generateTeacherJobId();
       profile = await TeacherProfile.create({ 
@@ -108,27 +158,88 @@ router.post('/signup', async (req, res) => {
     const userWithoutPassword = await User.findById(user._id).select('-passwordHash');
     res.status(201).json({ user: userWithoutPassword, profile, token: accessToken });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Signup error:', error);
+    res.status(500).json({ message: error.message || 'Server error occurred during registration' });
   }
 });
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
+// POST /api/auth/login - Rate-limited, brute-force protected, account lockout enabled
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+    const errors = {};
+    if (!email || !email.trim()) {
+      errors.email = 'Please enter your registered email address.';
+    }
+    if (!password) {
+      errors.password = 'Please enter your password.';
     }
 
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        message: 'Please provide both email and password.',
+        errors
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(400).json({ 
+        message: 'No account found with this email address.',
+        errors: { email: 'Account does not exist. Check your email or sign up.' }
+      });
+    }
+
+    // 1. Check if account is temporarily locked
+    if (user.isLocked) {
+      const remainingMs = new Date(user.lockUntil).getTime() - Date.now();
+      const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
+      return res.status(403).json({
+        message: `Account is temporarily locked due to 5 consecutive failed login attempts. Please try again in ${remainingMinutes} minute(s) or reset your password.`,
+        isLocked: true,
+        lockRemainingMinutes: remainingMinutes,
+        errors: { password: `Account locked. Try again in ${remainingMinutes}m.` }
+      });
+    }
+
+    // 2. Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      // Increment failed attempts and check if threshold reached
+      await user.incLoginAttempts();
+      const updatedUser = await User.findById(user._id);
+
+      if (updatedUser.isLocked) {
+        return res.status(403).json({
+          message: 'Account has been temporarily locked for 15 minutes due to 5 consecutive failed login attempts.',
+          isLocked: true,
+          lockRemainingMinutes: 15,
+          errors: { password: 'Account locked for 15 minutes due to repeated failed attempts.' }
+        });
+      }
+
+      const attemptsUsed = updatedUser.failedLoginAttempts || 1;
+      const remainingAttempts = Math.max(0, 5 - attemptsUsed);
+
+      return res.status(400).json({ 
+        message: `Invalid password. You have ${remainingAttempts} attempt(s) remaining before account lockout.`,
+        errors: { password: `Incorrect password (${remainingAttempts} attempts remaining)` }
+      });
+    }
+
+    // 3. Reset failed login attempts on successful password verification
+    if (user.failedLoginAttempts > 0 || user.lockUntil) {
+      await user.resetLoginAttempts();
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ message: 'Account is deactivated or deleted. Please contact support.' });
+      return res.status(403).json({ 
+        message: 'Your account is deactivated. Please contact support.',
+        errors: { email: 'Account is deactivated.' }
+      });
     }
 
     const { accessToken } = await createSessionAndTokens(user, req, res);
@@ -137,6 +248,17 @@ router.post('/login', async (req, res) => {
     let profile = null;
     if (user.role === 'teacher') profile = await TeacherProfile.findOne({ userId: user._id });
     else if (user.role === 'student') profile = await StudentProfile.findOne({ userId: user._id });
+
+    res.json({
+      user: userWithoutPassword,
+      profile: profile ? serializeProfile(profile, userWithoutPassword) : null,
+      token: accessToken
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: error.message || 'Server error during login' });
+  }
+});
 
     res.json({ user: userWithoutPassword, profile, token: accessToken });
   } catch (error) {
@@ -242,8 +364,9 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Token and new password are required' });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ message: passwordValidation.message });
     }
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -472,26 +595,51 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/auth/admin/login - Dedicated admin authentication (isolated from standard user sessions)
-router.post('/admin/login', async (req, res) => {
+// POST /api/auth/admin/login - Dedicated admin authentication (rate-limited, brute-force protected)
+router.post('/admin/login', adminAuthLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user || user.role !== 'admin') {
       return res.status(400).json({ message: 'Invalid administrator credentials' });
+    }
+
+    if (user.isLocked) {
+      const remainingMs = new Date(user.lockUntil).getTime() - Date.now();
+      const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
+      return res.status(403).json({
+        message: `Admin account is temporarily locked due to repeated failed attempts. Please try again in ${remainingMinutes} minute(s).`,
+        isLocked: true,
+        lockRemainingMinutes: remainingMinutes
+      });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid administrator credentials' });
+      await user.incLoginAttempts();
+      const updatedUser = await User.findById(user._id);
+
+      if (updatedUser.isLocked) {
+        return res.status(403).json({
+          message: 'Admin account has been temporarily locked for 15 minutes due to 5 consecutive failed login attempts.',
+          isLocked: true,
+          lockRemainingMinutes: 15
+        });
+      }
+
+      const remaining = Math.max(0, 5 - (updatedUser.failedLoginAttempts || 0));
+      return res.status(400).json({ 
+        message: `Invalid administrator credentials. ${remaining} attempt(s) remaining before lockout.`
+      });
     }
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access Denied: This account is not an administrator.' });
+    // Reset attempts on successful login
+    if (user.failedLoginAttempts > 0 || user.lockUntil) {
+      await user.resetLoginAttempts();
     }
 
     if (!user.isActive) {
@@ -550,7 +698,13 @@ router.put('/profile', authenticate, async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (name) user.name = name;
+    if (name) {
+      const nameValidation = cleanAndValidateName(name);
+      if (!nameValidation.isValid) {
+        return res.status(400).json({ message: nameValidation.message });
+      }
+      user.name = nameValidation.name;
+    }
     if (phone !== undefined) {
       if (phone && phone.trim()) {
         const phoneValidation = await validateUniquePhone(phone, user._id, false);

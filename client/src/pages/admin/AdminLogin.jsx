@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
 import { toast } from 'react-hot-toast';
-import { FaGraduationCap, FaShieldAlt } from 'react-icons/fa';
+import { FaGraduationCap, FaShieldAlt, FaExclamationCircle } from 'react-icons/fa';
 import { FiMail, FiLock, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 
 const AdminLogin = () => {
@@ -10,6 +10,8 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -18,27 +20,59 @@ const AdminLogin = () => {
   }, [isAdminAuthenticated, navigate]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (generalError) setGeneralError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) {
-      toast.error('Please enter email and password');
+    const errors = {};
+    if (!formData.email || !formData.email.trim()) {
+      errors.email = 'Please enter your administrator email address.';
+    }
+    if (!formData.password) {
+      errors.password = 'Please enter your administrator password.';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error('Please enter both admin email and password');
       return;
     }
 
     setLoading(true);
+    setFieldErrors({});
+    setGeneralError('');
     try {
-      const data = await adminLogin(formData.email, formData.password);
+      const data = await adminLogin(formData.email.trim(), formData.password);
       if (data.user?.role !== 'admin') {
-        toast.error('Access Denied: This account does not have administrator privileges.');
+        const msg = 'Access Denied: This account does not have administrator privileges.';
+        setGeneralError(msg);
+        toast.error(msg);
         return;
       }
       toast.success('Admin authentication successful');
       navigate('/admin', { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid administrator credentials');
+      const backendMsg = err.response?.data?.message || 'Invalid administrator credentials';
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors && typeof backendErrors === 'object') {
+        setFieldErrors(backendErrors);
+      } else {
+        const lower = backendMsg.toLowerCase();
+        if (lower.includes('password') || lower.includes('attempt')) {
+          setFieldErrors({ password: backendMsg });
+        } else if (lower.includes('locked') || lower.includes('lockout')) {
+          setFieldErrors({ email: backendMsg, password: backendMsg });
+        } else {
+          setFieldErrors({ email: backendMsg });
+        }
+      }
+      setGeneralError(backendMsg);
+      toast.error(backendMsg);
     } finally {
       setLoading(false);
     }
@@ -77,13 +111,20 @@ const AdminLogin = () => {
             </p>
           </div>
 
+          {generalError && (
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-start gap-2.5 animate-fadeIn">
+              <FaExclamationCircle className="text-rose-400 shrink-0 mt-0.5" size={15} />
+              <span className="flex-1 leading-relaxed">{generalError}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Admin Email
               </label>
               <div className="relative">
-                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                <FiMail className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${fieldErrors.email ? 'text-rose-400' : 'text-slate-500'}`} size={15} />
                 <input
                   type="email"
                   name="email"
@@ -91,9 +132,19 @@ const AdminLogin = () => {
                   placeholder="admin@toppscorers.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                    fieldErrors.email
+                      ? 'bg-rose-950/30 border-2 border-rose-500 text-rose-100 placeholder:text-rose-400 focus:ring-4 focus:ring-rose-500/20'
+                      : 'bg-slate-950/60 border border-slate-700/80 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400'
+                  }`}
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="text-xs text-rose-400 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                  <FaExclamationCircle className="shrink-0 text-rose-400" size={12} />
+                  <span>{fieldErrors.email}</span>
+                </p>
+              )}
             </div>
 
             <div>
@@ -101,7 +152,7 @@ const AdminLogin = () => {
                 Password
               </label>
               <div className="relative">
-                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                <FiLock className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${fieldErrors.password ? 'text-rose-400' : 'text-slate-500'}`} size={15} />
                 <input
                   type="password"
                   name="password"
@@ -109,9 +160,19 @@ const AdminLogin = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                    fieldErrors.password
+                      ? 'bg-rose-950/30 border-2 border-rose-500 text-rose-100 placeholder:text-rose-400 focus:ring-4 focus:ring-rose-500/20'
+                      : 'bg-slate-950/60 border border-slate-700/80 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400'
+                  }`}
                 />
               </div>
+              {fieldErrors.password && (
+                <p className="text-xs text-rose-400 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                  <FaExclamationCircle className="shrink-0 text-rose-400" size={12} />
+                  <span>{fieldErrors.password}</span>
+                </p>
+              )}
             </div>
 
             <button

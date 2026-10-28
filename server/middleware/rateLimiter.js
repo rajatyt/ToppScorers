@@ -29,3 +29,34 @@ export const forgotPasswordLimiter = rateLimit({
     message: 'Too many password reset requests. Please try again after 15 minutes.'
   }
 });
+
+// Stricter rate limiters for authentication endpoints to prevent brute-force attacks
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // max 20 login attempts per 15 mins per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: 'Too many login attempts from this network. Please wait 15 minutes before trying again.'
+  }
+});
+
+export const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 15, // max 15 account creations per hour per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: 'Too many account registrations from this network. Please wait an hour before registering again.'
+  }
+});
+
+export const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 admin login attempts per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: 'Too many administrator login attempts. Access is temporarily rate limited. Please try again later.'
+  }
+});

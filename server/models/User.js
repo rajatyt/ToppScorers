@@ -18,7 +18,9 @@ const userSchema = new mongoose.Schema({
   consentTimestamp: { type: Date, default: Date.now },
   accountDeletionRequested: { type: Date, default: null },
   resetPasswordToken: { type: String, default: null, index: true },
-  resetPasswordExpires: { type: Date, default: null }
+  resetPasswordExpires: { type: Date, default: null },
+  failedLoginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
@@ -32,9 +34,14 @@ userSchema.virtual('isMinor').get(function () {
   return Math.abs(ageDate.getUTCFullYear() - 1970) < 18;
 });
 
+userSchema.virtual('isLocked').get(function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
+
 userSchema.pre('save', async function (next) {
   if (!this.isModified('passwordHash') || !this.passwordHash) return next();
-  const salt = await bcrypt.genSalt(10);
+  // Strong bcrypt work factor (12 rounds)
+  const salt = await bcrypt.genSalt(12);
   this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
   next();
 });
@@ -42,6 +49,35 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.passwordHash) return false;
   return await bcrypt.compare(candidatePassword, this.passwordHash);
+};
+
+userSchema.methods.incLoginAttempts = async function () {
+  const MAX_ATTEMPTS = 5;
+  const LOCK_TIME_MS = 15 * 60 * 1000; // 15 minutes lockout
+
+  // If previous lock has expired, reset counter to 1
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return await this.updateOne({
+      $set: { failedLoginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+
+  const updates = { $inc: { failedLoginAttempts: 1 } };
+  const nextAttempts = (this.failedLoginAttempts || 0) + 1;
+
+  if (nextAttempts >= MAX_ATTEMPTS && !this.isLocked) {
+    updates.$set = { lockUntil: new Date(Date.now() + LOCK_TIME_MS) };
+  }
+
+  return await this.updateOne(updates);
+};
+
+userSchema.methods.resetLoginAttempts = async function () {
+  return await this.updateOne({
+    $set: { failedLoginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
 };
 
 const User = mongoose.model('User', userSchema);
