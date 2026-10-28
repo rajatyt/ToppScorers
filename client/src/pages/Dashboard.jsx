@@ -397,7 +397,7 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <div className="font-extrabold text-slate-900 text-sm group-hover:text-amber-950">
-                      Find Teachers
+                      Find Tutors
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       Search verified tutors

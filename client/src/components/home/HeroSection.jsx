@@ -1,8 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import api from '../../api/axios';
 import { 
   FaGraduationCap, 
   FaUserGraduate, 
@@ -32,6 +33,15 @@ const HeroSection = () => {
   const [activeRole, setActiveRole] = useState(isUserTeacher ? 'teacher' : 'student');
   const [previewTab, setPreviewTab] = useState(isUserTeacher ? 'students' : 'teachers');
   const [searchQuery, setSearchQuery] = useState('');
+  const [dashboardMetrics, setDashboardMetrics] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      api.get('/auth/dashboard-metrics')
+        .then((res) => setDashboardMetrics(res.data))
+        .catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   const handleRoleSwitch = (role) => {
     setActiveRole(role);
@@ -159,7 +169,7 @@ const HeroSection = () => {
                 }`}
               >
                 <FaChalkboardTeacher className="text-sm" />
-                <span>{t('hero.teacherTab', "I'm a Teacher / Tutor")}</span>
+                <span>{t('hero.teacherTab', "I'm a Tutor")}</span>
               </button>
             </div>
           )}
@@ -180,7 +190,7 @@ const HeroSection = () => {
               </h1>
             ) : (
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-display font-black leading-[1.12] tracking-tight text-white">
-                Find Top 1% Verified <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent">Home Tutors & Mentors</span>
+                Find Top 1% Verified <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent">Home Tutors</span>
               </h1>
             )}
           </div>
@@ -230,7 +240,7 @@ const HeroSection = () => {
               type="submit"
               className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-glow-sm hover:shadow-glow-md transition-all flex items-center justify-center space-x-2 flex-shrink-0 cursor-pointer active:scale-[0.98]"
             >
-              <span>{activeRole === 'teacher' ? 'Find Students' : 'Find Tutors'}</span>
+              <span>Search</span>
               <FiArrowRight />
             </button>
           </form>
@@ -282,7 +292,7 @@ const HeroSection = () => {
                   className="w-full sm:w-auto px-8 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-amber-400/50 text-white font-bold rounded-xl backdrop-blur-md transition-all duration-300 text-center text-sm flex items-center justify-center"
                 >
                   <FaChalkboardTeacher className="mr-2 text-amber-400" />
-                  {t('hero.joinAsTeacher', "Join as Teacher")}
+                  {t('hero.joinAsTeacher', "Join as Tutor")}
                 </Link>
               </>
             ) : (
@@ -292,7 +302,7 @@ const HeroSection = () => {
                   className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-glow-sm hover:shadow-glow-md transition-all duration-300 text-center text-sm flex items-center justify-center hover:scale-[1.02]"
                 >
                   <FaSearch className="mr-2 text-xs" />
-                  {t('hero.findTeacher', "Find a Teacher")}
+                  {t('hero.findTeacher', "Find a Tutor")}
                 </Link>
                 <Link 
                   to="/signup?role=student"
@@ -359,7 +369,7 @@ const HeroSection = () => {
                   }`}
                 >
                   <FaChalkboardTeacher size={12} />
-                  <span>{t('hero.verifiedMentors')}</span>
+                  <span>Verified Tutors</span>
                 </button>
               </div>
             </div>
@@ -367,7 +377,7 @@ const HeroSection = () => {
             {/* Dynamic Items */}
             <AnimatePresence mode="wait">
               {previewTab === 'students' ? (
-                /* Tab 1: Live Student Tuition Inquiries */
+                /* Tab 1: Live Student Tuition Inquiries & Dashboard Summary */
                 <motion.div
                   key="students-preview"
                   initial={{ opacity: 0, y: 10 }}
@@ -377,67 +387,120 @@ const HeroSection = () => {
                   className="space-y-2.5"
                 >
                   <div className="flex items-center justify-between text-[11px] text-amber-400 font-semibold px-1">
-                    <span>{t('hero.recentInquiries')}</span>
+                    <span>{isAuthenticated ? 'My Dashboard Activity' : t('hero.recentInquiries')}</span>
                     <span className="flex items-center space-x-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>{t('hero.liveFeed')}</span>
+                      <span>{isAuthenticated ? 'Dashboard Live' : t('hero.liveFeed')}</span>
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-white text-xs">{t('hero.class12JEE')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {t('hero.activeRequest')}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-300">{t('hero.physicsMathsTutor')}</div>
-                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
-                      <FaMapMarkerAlt size={9} className="text-amber-400" />
-                      <span>{t('hero.bangaloreLocation')}</span>
-                    </div>
-                  </div>
+                  {isAuthenticated ? (
+                    <div className="space-y-2 pt-1">
+                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
+                            ⏳
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">Pending Requests</div>
+                            <div className="text-[10px] text-slate-400">Awaiting coordination / reply</div>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {dashboardMetrics?.incomingCount ?? dashboardMetrics?.sentCount ?? 0}
+                        </span>
+                      </div>
 
-                  <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-white text-xs">{t('hero.neetDropper')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {t('hero.urgentNeed')}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-300">{t('hero.biologyMentorship')}</div>
-                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
-                      <FaMapMarkerAlt size={9} className="text-amber-400" />
-                      <span>{t('hero.onlineMode')}</span>
-                    </div>
-                  </div>
+                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">
+                            <FaCheckCircle className="text-emerald-400" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">Connected Tuitions</div>
+                            <div className="text-[10px] text-slate-400">Active tuition connects</div>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          {dashboardMetrics?.acceptedCount ?? 0}
+                        </span>
+                      </div>
 
-                  <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-blue-400/30 transition-all duration-200">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-white text-xs">{t('hero.foundationBatches')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        {t('hero.directCall')}
-                      </span>
+                      <div className="p-2.5 bg-gradient-to-r from-amber-500/10 to-transparent rounded-xl border border-amber-500/20 flex items-center justify-between text-xs">
+                        <span className="text-slate-300 font-medium">Profile Approval</span>
+                        <span className="font-bold text-amber-300 capitalize">
+                          {dashboardMetrics?.approvalStatus || 'Approved'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-300">{t('hero.icseCoaching')}</div>
-                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
-                      <FaMapMarkerAlt size={9} className="text-amber-400" />
-                      <span>{t('hero.southDelhi')}</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-white text-xs">{t('hero.class12JEE')}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {t('hero.activeRequest')}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-300">{t('hero.physicsMathsTutor')}</div>
+                        <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
+                          <FaMapMarkerAlt size={9} className="text-amber-400" />
+                          <span>{t('hero.bangaloreLocation')}</span>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-white text-xs">{t('hero.neetDropper')}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {t('hero.urgentNeed')}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-300">{t('hero.biologyMentorship')}</div>
+                        <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
+                          <FaMapMarkerAlt size={9} className="text-amber-400" />
+                          <span>{t('hero.onlineMode')}</span>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-blue-400/30 transition-all duration-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-white text-xs">{t('hero.foundationBatches')}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            {t('hero.directCall')}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-300">{t('hero.icseCoaching')}</div>
+                        <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1.5">
+                          <FaMapMarkerAlt size={9} className="text-amber-400" />
+                          <span>{t('hero.southDelhi')}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="pt-2 flex items-center justify-between text-[11px] text-slate-300 px-1 border-t border-white/10">
                     <span className="flex items-center space-x-1 text-slate-400">
                       <FaBolt className="text-amber-400" />
-                      <span>{t('hero.activeStudentCount')}</span>
+                      <span>{isAuthenticated ? 'Active Dashboard Activity' : t('hero.activeStudentCount')}</span>
                     </span>
-                    <Link to="/students" className="font-bold text-amber-400 hover:text-amber-300 underline flex items-center">
-                      {t('hero.browseStudents')} <FiArrowRight className="ml-1" />
-                    </Link>
+                    {isAuthenticated ? (
+                      <Link to="/dashboard" className="font-bold text-amber-400 hover:text-amber-300 underline flex items-center">
+                        My Dashboard <FiArrowRight className="ml-1" />
+                      </Link>
+                    ) : isUserStudent ? (
+                      <Link to="/teachers" className="font-bold text-amber-400 hover:text-amber-300 underline flex items-center">
+                        Find Tutors <FiArrowRight className="ml-1" />
+                      </Link>
+                    ) : (
+                      <Link to="/students" className="font-bold text-amber-400 hover:text-amber-300 underline flex items-center">
+                        {t('hero.browseStudents')} <FiArrowRight className="ml-1" />
+                      </Link>
+                    )}
                   </div>
                 </motion.div>
               ) : (
-                /* Tab 2: Top Verified Teachers */
+                /* Tab 2: Top Verified Tutors (ASC Order: 4.8 ★ -> 4.9 ★ -> 5.0 ★) */
                 <motion.div
                   key="teachers-preview"
                   initial={{ opacity: 0, y: 10 }}
@@ -447,40 +510,43 @@ const HeroSection = () => {
                   className="space-y-2.5"
                 >
                   <div className="flex items-center justify-between text-[11px] text-amber-400 font-semibold px-1">
-                    <span>{t('hero.verifiedMentorship')}</span>
+                    <span>Verified Tutors (Ranked by Rating: ASC)</span>
                     <span className="flex items-center space-x-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>{t('hero.verifiedBadgeText')}</span>
+                      <span>Verified Tutors</span>
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-white text-xs">{t('hero.physicsAdvancedMaths')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {t('hero.verifiedBadgeText')}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-300">{t('hero.iitAlum')}</div>
-                    <div className="text-[10px] text-amber-400/90 mt-1.5 font-medium">{t('hero.expYears')}</div>
-                  </div>
-
+                  {/* 1st in ASC Order: 4.8 ★ */}
                   <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-bold text-white text-xs">{t('hero.neetBiologyFaculty')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {t('hero.verifiedBadgeText')}
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <FaStar className="text-amber-400 text-[9px]" /> 4.8 ★
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-300">{t('hero.aiimsFaculty')}</div>
                     <div className="text-[10px] text-amber-400/90 mt-1.5 font-medium">{t('hero.expBiology')}</div>
                   </div>
 
+                  {/* 2nd in ASC Order: 4.9 ★ */}
+                  <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/30 transition-all duration-200">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-bold text-white text-xs">{t('hero.physicsAdvancedMaths')}</span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        <FaStar className="text-emerald-400 text-[9px]" /> 4.9 ★
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-300">{t('hero.iitAlum')}</div>
+                    <div className="text-[10px] text-amber-400/90 mt-1.5 font-medium">{t('hero.expYears')}</div>
+                  </div>
+
+                  {/* 3rd in ASC Order: 5.0 ★ */}
                   <div className="p-3.5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-blue-400/30 transition-all duration-200">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-bold text-white text-xs">{t('hero.chemistryFoundation')}</span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        {t('hero.directCall')}
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                        <FaStar className="text-blue-400 text-[9px]" /> 5.0 ★
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-300">{t('hero.bitsPilani')}</div>
@@ -493,7 +559,7 @@ const HeroSection = () => {
                       <span>{t('hero.activeMentorsCount')}</span>
                     </span>
                     <Link to="/teachers" className="font-bold text-amber-400 hover:text-amber-300 underline flex items-center">
-                      {t('hero.browseTeachers')} <FiArrowRight className="ml-1" />
+                      Find Verified Tutors <FiArrowRight className="ml-1" />
                     </Link>
                   </div>
                 </motion.div>

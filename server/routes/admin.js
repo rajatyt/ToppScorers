@@ -13,6 +13,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValidator.js';
 import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
 import Query from '../models/Query.js';
+import AdminNotification from '../models/AdminNotification.js';
 
 const router = express.Router();
 
@@ -1138,13 +1139,51 @@ router.delete('/connections/:id', async (req, res) => {
 });
 
 // ==========================================
-// ADMIN NOTIFICATION BADGE COUNTS
+// ADMIN NOTIFICATION BADGE COUNTS & PHONE ALERTS
 // ==========================================
+
+// GET /api/admin/phone-notifications - List phone change alerts for verified tutors/students
+router.get('/phone-notifications', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    const notifications = await AdminNotification.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/admin/phone-notifications/:id/resolve - Mark a phone change notification resolved/reviewed
+router.post('/phone-notifications/:id/resolve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    const notification = await AdminNotification.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          status: 'resolved',
+          viewedByAdmin: true,
+          ...(notes ? { notes } : {})
+        }
+      },
+      { new: true }
+    );
+    if (!notification) return res.status(404).json({ message: 'Notification not found' });
+    res.json({ message: 'Phone change marked as updated in records', notification });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // GET /api/admin/unread-counts - Get unviewed counts for Connections, Verifications, Reports, and Queries
 router.get('/unread-counts', async (req, res) => {
   try {
-    const [connectionsCount, teacherVerificationsCount, studentVerificationsCount, reportsCount, queriesCount] = await Promise.all([
+    const [connectionsCount, teacherVerificationsCount, studentVerificationsCount, reportsCount, queriesCount, phoneChangesCount] = await Promise.all([
       ConnectionRequest.countDocuments({ viewedByAdmin: false }),
       TeacherProfile.countDocuments({
         viewedByAdmin: false,
@@ -1162,17 +1201,19 @@ router.get('/unread-counts', async (req, res) => {
         ]
       }),
       Report.countDocuments({ viewedByAdmin: false, status: 'pending' }),
-      Query.countDocuments({ adminViewed: false })
+      Query.countDocuments({ adminViewed: false }),
+      AdminNotification.countDocuments({ viewedByAdmin: false, status: 'pending' })
     ]);
 
     const verificationsCount = teacherVerificationsCount + studentVerificationsCount;
-    const total = connectionsCount + verificationsCount + reportsCount + queriesCount;
+    const total = connectionsCount + verificationsCount + reportsCount + queriesCount + phoneChangesCount;
 
     res.json({
       connections: connectionsCount,
       verifications: verificationsCount,
       reports: reportsCount,
       queries: queriesCount,
+      phoneChanges: phoneChangesCount,
       total
     });
   } catch (error) {
@@ -1183,7 +1224,7 @@ router.get('/unread-counts', async (req, res) => {
 // POST /api/admin/mark-viewed - Mark an admin section viewed (clears the badge instantly)
 router.post('/mark-viewed', async (req, res) => {
   try {
-    const { section } = req.body; // 'connections' | 'verifications' | 'reports' | 'queries' | 'all'
+    const { section } = req.body; // 'connections' | 'verifications' | 'reports' | 'queries' | 'phone_changes' | 'all'
 
     if (section === 'connections') {
       await ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
@@ -1196,13 +1237,16 @@ router.post('/mark-viewed', async (req, res) => {
       await Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
     } else if (section === 'queries') {
       await Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } });
+    } else if (section === 'phone_changes') {
+      await AdminNotification.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } });
     } else if (section === 'all') {
       await Promise.all([
         ConnectionRequest.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         TeacherProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         StudentProfile.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
         Report.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } }),
-        Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } })
+        Query.updateMany({ adminViewed: false }, { $set: { adminViewed: true } }),
+        AdminNotification.updateMany({ viewedByAdmin: false }, { $set: { viewedByAdmin: true } })
       ]);
     }
 

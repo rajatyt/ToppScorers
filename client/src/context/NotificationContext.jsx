@@ -22,6 +22,7 @@ export const NotificationProvider = ({ children }) => {
     verifications: 0,
     reports: 0,
     queries: 0,
+    phoneChanges: 0,
     total: 0
   });
 
@@ -68,6 +69,7 @@ export const NotificationProvider = ({ children }) => {
           verifications: res.data.verifications || 0,
           reports: res.data.reports || 0,
           queries: res.data.queries || 0,
+          phoneChanges: res.data.phoneChanges || 0,
           total: res.data.total || 0
         });
       }
@@ -128,16 +130,19 @@ export const NotificationProvider = ({ children }) => {
       let verifications = prev.verifications;
       let reports = prev.reports;
       let queries = prev.queries;
+      let phoneChanges = prev.phoneChanges;
 
       if (section === 'connections') connections = 0;
       else if (section === 'verifications') verifications = 0;
       else if (section === 'reports') reports = 0;
       else if (section === 'queries') queries = 0;
+      else if (section === 'phone_changes') phoneChanges = 0;
       else if (section === 'all') {
         connections = 0;
         verifications = 0;
         reports = 0;
         queries = 0;
+        phoneChanges = 0;
       }
 
       return {
@@ -145,7 +150,8 @@ export const NotificationProvider = ({ children }) => {
         verifications,
         reports,
         queries,
-        total: connections + verifications + reports + queries
+        phoneChanges,
+        total: connections + verifications + reports + queries + phoneChanges
       };
     });
 

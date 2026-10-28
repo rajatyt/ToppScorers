@@ -120,7 +120,7 @@ const CoverageSection = () => {
       theme: 'indigo',
       title: t('coverage.upscTitle', 'UPSC Civil Services & State PCS'),
       badge: t('coverage.upscBadge', 'IAS / IPS / PCS'),
-      desc: t('coverage.upscDesc', 'Comprehensive GS mentorship covering History, Polity, Geography, Economics, Current Affairs, and CSAT answer writing.'),
+      desc: t('coverage.upscDesc', 'Comprehensive GS tutoring covering History, Polity, Geography, Economics, Current Affairs, and CSAT answer writing.'),
       subjects: ['Indian History', 'Polity & Constitution', 'Geography', 'Economics', 'Current Affairs', 'CSAT & Mains Prep'],
       searchQuery: 'UPSC'
     },
@@ -166,8 +166,8 @@ const CoverageSection = () => {
       theme: 'cyan',
       title: t('coverage.skillsTitle', 'Skill & Upskilling Courses'),
       badge: t('coverage.skillsBadge', 'Future-Ready Skills'),
-      desc: t('coverage.skillsDesc', 'Hands-on coding, programming (Python, Java, C++, Web Dev), Data Science, AI basics, and digital upskilling mentorship.'),
-      subjects: ['Python & Java', 'C++ & DSA', 'Web Development', 'Data Science & SQL', 'AI & Machine Learning', 'Practical Mentorship'],
+      desc: t('coverage.skillsDesc', 'Hands-on coding, programming (Python, Java, C++, Web Dev), Data Science, AI basics, and digital upskilling tutoring.'),
+      subjects: ['Python & Java', 'C++ & DSA', 'Web Development', 'Data Science & SQL', 'AI & Machine Learning', 'Practical Tutoring'],
       searchQuery: 'Coding'
     }
   ];

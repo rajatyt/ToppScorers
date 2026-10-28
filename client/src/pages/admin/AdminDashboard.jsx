@@ -15,6 +15,7 @@ const AdminDashboard = () => {
   const [connMetrics, setConnMetrics] = useState({ totalRequests: 0, newLeads: 0, totalCommissionReceived: 0 });
   const [recentUsers, setRecentUsers] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [phoneAlerts, setPhoneAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeUserTab, setActiveUserTab] = useState('all');
 
@@ -22,14 +23,16 @@ const AdminDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [usersRes, sessionsRes, connsRes] = await Promise.all([
+        const [usersRes, sessionsRes, connsRes, phoneAlertsRes] = await Promise.all([
           axios.get('/admin/users'),
           axios.get('/admin/sessions'),
-          axios.get('/admin/connections').catch(() => ({ data: { metrics: {} } }))
+          axios.get('/admin/connections').catch(() => ({ data: { metrics: {} } })),
+          axios.get('/admin/phone-notifications?status=pending').catch(() => ({ data: [] }))
         ]);
         
         const users = usersRes.data || [];
         const activeSessions = sessionsRes.data || [];
+        setPhoneAlerts(phoneAlertsRes.data || []);
         
         const teachers = users.filter(u => u.role === 'teacher').length;
         const students = users.filter(u => u.role === 'student').length;
@@ -136,6 +139,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleResolvePhoneAlert = async (id) => {
+    try {
+      await axios.post(`/admin/phone-notifications/${id}/resolve`);
+      toast.success('Phone change acknowledged & marked updated');
+      setPhoneAlerts(prev => prev.filter(a => a._id !== id));
+    } catch (err) {
+      toast.error('Failed to resolve phone alert');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-80 space-y-3">
@@ -202,6 +215,86 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Verified Phone Number Change Alerts */}
+      {phoneAlerts.length > 0 && (
+        <div className="rounded-2xl border-2 border-amber-400 bg-amber-50/90 p-5 shadow-lg shadow-amber-500/10 transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3 mb-4">
+            <div className="flex items-center space-x-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md animate-bounce">
+                <FiSmartphone size={20} />
+              </span>
+              <div>
+                <h3 className="text-base font-extrabold text-amber-950 flex items-center gap-2">
+                  <span>Verified Phone Number Changes</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-200 text-amber-900 border border-amber-300">
+                    {phoneAlerts.length} Action Required
+                  </span>
+                </h3>
+                <p className="text-xs text-amber-800">
+                  Verified tutors and students recently changed their contact phone numbers. Review and update official records personally.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/admin/queries')}
+              className="text-xs font-bold text-amber-900 hover:text-amber-950 underline self-start sm:self-auto"
+            >
+              View in Query Log &rarr;
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {phoneAlerts.map(alert => (
+              <div 
+                key={alert._id} 
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3.5 bg-white rounded-xl border border-amber-200 shadow-xs"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-sm">{alert.userName}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                      alert.role === 'teacher' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {alert.role === 'teacher' ? 'Verified Tutor' : 'Verified Student'}
+                    </span>
+                    {alert.jobId && (
+                      <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        {alert.jobId}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <span className="line-through text-slate-400 font-mono">{alert.oldPhone || 'N/A'}</span>
+                    <span className="font-bold text-emerald-600">➔</span>
+                    <span className="font-mono font-bold text-slate-900 bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
+                      {alert.newPhone}
+                    </span>
+                    <span className="text-slate-400">•</span>
+                    <span className="text-slate-500">{new Date(alert.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end md:self-auto">
+                  <button
+                    onClick={() => handleResolvePhoneAlert(alert._id)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <FiCheckCircle size={14} />
+                    <span>Updated in Records</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/admin/profiles')}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    View Profile
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

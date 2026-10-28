@@ -36,6 +36,7 @@ import {
   adminAuthLimiter 
 } from '../middleware/rateLimiter.js';
 import { sendPasswordResetEmail } from '../utils/emailService.js';
+import { checkAndNotifyPhoneChange } from '../utils/notifyAdminOnPhoneChange.js';
 
 const router = express.Router();
 
@@ -698,6 +699,10 @@ router.put('/profile', authenticate, async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    const oldPhone = user.phone || '';
+    let phoneChanged = false;
+    let newPhoneVal = '';
+
     if (name) {
       const nameValidation = cleanAndValidateName(name);
       if (!nameValidation.isValid) {
@@ -710,6 +715,10 @@ router.put('/profile', authenticate, async (req, res) => {
         const phoneValidation = await validateUniquePhone(phone, user._id, false);
         if (!phoneValidation.isValid) {
           return res.status(400).json({ message: phoneValidation.message });
+        }
+        if (oldPhone && oldPhone !== phoneValidation.phone) {
+          phoneChanged = true;
+          newPhoneVal = phoneValidation.phone;
         }
         user.phone = phoneValidation.phone;
       } else {
@@ -727,6 +736,13 @@ router.put('/profile', authenticate, async (req, res) => {
     if (parentGuardianConsent !== undefined) user.parentGuardianConsent = Boolean(parentGuardianConsent);
 
     await user.save();
+
+    if (phoneChanged && newPhoneVal) {
+      await checkAndNotifyPhoneChange({ user, oldPhone, newPhone: newPhoneVal }).catch(err => {
+        console.error('Failed to notify admin on phone change:', err);
+      });
+    }
+
     const updated = await User.findById(user._id).select('-passwordHash');
     res.json({ message: 'Personal info updated', user: updated });
   } catch (error) {

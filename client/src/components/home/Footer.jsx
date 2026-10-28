@@ -75,7 +75,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/teachers" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Find Teachers & Tutors
+                  <span className="text-amber-500/60 text-xs">›</span> Find Tutors
                 </Link>
               </li>
               <li>
@@ -91,15 +91,15 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 3: For Educators */}
+          {/* Column 3: For Tutors */}
           <div>
             <h4 className="font-display text-sm font-bold text-white uppercase tracking-wider mb-4">
-              {t('footer.forTeachers', 'For Educators')}
+              {t('footer.forTeachers', 'For Tutors')}
             </h4>
             <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
               <li>
                 <Link to="/signup?role=teacher" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Create Teacher Profile
+                  <span className="text-amber-500/60 text-xs">›</span> Create Tutor Profile
                 </Link>
               </li>
               <li>
@@ -109,7 +109,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/login" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Educator Login
+                  <span className="text-amber-500/60 text-xs">›</span> Tutor Login
                 </Link>
               </li>
             </ul>
@@ -156,10 +156,6 @@ const Footer = () => {
             <FaWhatsapp size={13} />
             <span>Official Community Support</span>
           </a>
-          <span className="text-slate-400 flex items-center gap-1.5 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>100% Direct Settlement Guarantee</span>
-          </span>
         </div>
       </div>
     </footer>

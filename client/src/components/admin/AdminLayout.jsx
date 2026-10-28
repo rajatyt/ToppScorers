@@ -53,7 +53,7 @@ const AdminLayout = ({ children }) => {
   };
 
   const navLinks = [
-    { to: '/admin', exact: true, icon: <FiHome className="text-lg" />, label: 'Dashboard', desc: 'Overview & metrics' },
+    { to: '/admin', exact: true, icon: <FiHome className="text-lg" />, label: 'Dashboard', desc: 'Overview & metrics', badgeKey: 'phoneChanges' },
     { to: '/admin/connections/student-to-teacher', exact: true, icon: <FaUserGraduate className="text-lg text-emerald-400" />, label: 'Student ➔ Teacher', desc: 'Student asked, Teacher accepted', badgeKey: 'connections' },
     { to: '/admin/connections/teacher-to-student', exact: true, icon: <FaChalkboardTeacher className="text-lg text-blue-400" />, label: 'Teacher ➔ Student', desc: 'Teacher asked, Student approved' },
     { to: '/admin/connections', exact: true, icon: <FaHandshake className="text-lg text-amber-400" />, label: 'All Leads & Pipeline', desc: 'Direct matchmaking & commission' },

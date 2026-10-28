@@ -207,7 +207,7 @@ const Navbar = () => {
                   </div>
                   <span className="max-w-[130px] sm:max-w-[160px] truncate text-slate-900 font-bold text-xs">{user.name || 'Account'}</span>
                   {isVerifiedAccount && (
-                    <span className="inline-flex items-center text-emerald-600 font-black text-xs" title={isVerifiedTeacher ? "Verified Teacher" : "Verified Student/Parent"}>
+                    <span className="inline-flex items-center text-emerald-600 font-black text-xs" title={isVerifiedTeacher ? "Verified Tutor" : "Verified Student/Parent"}>
                       ✅
                     </span>
                   )}
@@ -222,7 +222,7 @@ const Navbar = () => {
                       </span>
                       {isVerifiedTeacher ? (
                         <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full flex-shrink-0">
-                          Teacher Verified ✅
+                          Tutor Verified ✅
                         </span>
                       ) : isVerifiedStudent ? (
                         <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full flex-shrink-0">
@@ -453,7 +453,7 @@ const Navbar = () => {
                 {isTeacher && (
                   <div className="py-1 my-1 border-y border-slate-100 space-y-1">
                     <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      Teacher Profile
+                      Tutor Profile
                     </div>
                     <Link
                       to="/profile?tab=general"

@@ -22,7 +22,7 @@ const ProfileCard = ({
   const [imgError, setImgError] = useState(false);
 
   const user = profile.userId || {};
-  const name = profile.name || user.name || (isTeacher ? 'Verified Teacher' : 'Student Requirement');
+  const name = profile.name || user.name || (isTeacher ? 'Verified Tutor' : 'Student Requirement');
   const photo = profile.profilePhotoUrl || user.avatar;
   const city = profile.location?.city || 'India';
   const area = profile.area ? `${profile.area}, ` : '';
@@ -106,7 +106,7 @@ const ProfileCard = ({
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300/80 font-bold text-[11px] shadow-2xs">
                     <FaChalkboardTeacher className="text-amber-600 text-[11px]" />
-                    <span>{t('common.educatorProfile', 'Educator Profile')}</span>
+                    <span>{t('common.educatorProfile', 'Tutor Profile')}</span>
                   </span>
                 )
               ) : (

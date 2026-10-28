@@ -12,7 +12,7 @@ import {
   FaPhoneAlt, FaEnvelope, FaVideo, FaAward, FaCalendarAlt,
   FaClock, FaCompass, FaFlag, FaBan, FaArrowLeft, FaBookOpen
 } from 'react-icons/fa';
-import { FiLock, FiCheck, FiArrowRight, FiCopy } from 'react-icons/fi';
+import { FiLock, FiCheck, FiArrowRight, FiCopy, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 const ProfileDetail = () => {
   const { id } = useParams();
@@ -32,6 +32,8 @@ const ProfileDetail = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [copiedJobId, setCopiedJobId] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [isCoordinationOpen, setIsCoordinationOpen] = useState(false);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -556,49 +558,63 @@ const ProfileDetail = () => {
           <div className="space-y-6">
             {/* Stitch Parent Assurance & Verification Seal Card */}
             {isTeacherRoute && (
-              <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-white/10 relative overflow-hidden">
-                <div className="flex items-center space-x-2.5 mb-4">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
-                    <FaShieldAlt size={16} />
+              <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-xl border border-white/10 relative overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => setIsAuditOpen(!isAuditOpen)}
+                  className="w-full flex items-center justify-between text-left cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                      <FaShieldAlt size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-sm text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                        <span>Institutional Audit</span>
+                        <span className="text-[10px] text-slate-400 font-normal">({isAuditOpen ? 'click to collapse' : 'click to view'})</span>
+                      </h3>
+                      <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                        {profile.isVerified ? '4-Tier Audit Cleared' : 'Standard Screening'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-display font-bold text-sm text-white">Institutional Audit</h3>
-                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                      {profile.isVerified ? '4-Tier Audit Cleared' : 'Standard Screening'}
-                    </p>
+                  <div className="p-1.5 rounded-lg bg-white/5 text-slate-400 group-hover:text-white transition-colors">
+                    {isAuditOpen ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
                   </div>
-                </div>
+                </button>
 
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-slate-300 flex items-center gap-2">
-                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
-                      Govt Identity (Aadhaar)
-                    </span>
-                    <span className="text-[10px] text-emerald-400 font-bold uppercase">Audited</span>
+                {isAuditOpen && (
+                  <div className="space-y-2.5 text-xs pt-4 mt-4 border-t border-white/10 animate-fadeIn">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                      <span className="text-slate-300 flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                        Govt Identity (Aadhaar)
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase">Audited</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                      <span className="text-slate-300 flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                        University Degree Records
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase">Verified</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                      <span className="text-slate-300 flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                        0% Commission Direct Pay
+                      </span>
+                      <span className="text-[10px] text-amber-400 font-bold uppercase">Guaranteed</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                      <span className="text-slate-300 flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
+                        Free Demo Trial
+                      </span>
+                      <span className="text-[10px] text-sky-400 font-bold uppercase">Protected</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-slate-300 flex items-center gap-2">
-                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
-                      University Degree Records
-                    </span>
-                    <span className="text-[10px] text-emerald-400 font-bold uppercase">Verified</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-slate-300 flex items-center gap-2">
-                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
-                      0% Commission Direct Pay
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold uppercase">Guaranteed</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
-                    <span className="text-slate-300 flex items-center gap-2">
-                      <FaCheckCircle className="text-emerald-400 text-xs shrink-0" />
-                      Free Demo Trial
-                    </span>
-                    <span className="text-[10px] text-sky-400 font-bold uppercase">Protected</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -679,32 +695,53 @@ const ProfileDetail = () => {
               </div>
 
               {/* Tuition Coordination & Privacy */}
-              <div className="text-xs">
-                <span className="text-slate-400 font-bold uppercase block mb-1">Tuition Coordination & Privacy</span>
-                {isOwner && profile.userId?.phone ? (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs">
-                    <span className="font-bold block text-slate-900">Your Registered Phone: {profile.userId.phone}</span>
-                    <span className="text-[11px] text-amber-800">Kept strictly confidential. Only visible to you and ToppScorers coordinators.</span>
+              <div className="text-xs pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCoordinationOpen(!isCoordinationOpen)}
+                  className="w-full flex items-center justify-between text-left cursor-pointer group py-1"
+                >
+                  <div>
+                    <span className="text-slate-600 group-hover:text-amber-600 font-bold uppercase text-[11px] block transition-colors">
+                      Tuition Coordination & Privacy
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {isCoordinationOpen ? 'Click to collapse coordination policy' : 'Click to view coordination policy'}
+                    </span>
                   </div>
-                ) : profile.connectionStatus === 'accepted' ? (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-[11px] space-y-1">
-                    <div className="font-bold flex items-center text-emerald-900">
-                      <FaShieldAlt className="mr-1.5 text-emerald-600" />
-                      Connected • Tuition Coordination Active
-                    </div>
-                    <p className="text-emerald-800 leading-relaxed">
-                      Our ToppScorers coordinator will contact both parties to schedule your demo class and finalize tuition arrangements. Direct phone numbers remain private.
-                    </p>
+                  <div className="p-1 rounded-md bg-slate-100 text-slate-500 group-hover:text-slate-800 transition-colors">
+                    {isCoordinationOpen ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
                   </div>
-                ) : (
-                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-slate-600 text-[11px] space-y-1">
-                    <div className="flex items-center font-bold text-slate-700">
-                      <FiLock className="mr-1.5 text-slate-400 flex-shrink-0" />
-                      Protected Mediation Model
-                    </div>
-                    <p className="text-slate-500 leading-relaxed">
-                      Direct phone numbers are never shared publicly. To ensure safety and teaching quality, ToppScorers coordinates directly between students and teachers to arrange physical tuitions.
-                    </p>
+                </button>
+
+                {isCoordinationOpen && (
+                  <div className="mt-2.5 animate-fadeIn">
+                    {isOwner && profile.userId?.phone ? (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs">
+                        <span className="font-bold block text-slate-900">Your Registered Phone: {profile.userId.phone}</span>
+                        <span className="text-[11px] text-amber-800">Kept strictly confidential. Only visible to you and ToppScorers coordinators.</span>
+                      </div>
+                    ) : profile.connectionStatus === 'accepted' ? (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-[11px] space-y-1">
+                        <div className="font-bold flex items-center text-emerald-900">
+                          <FaShieldAlt className="mr-1.5 text-emerald-600" />
+                          Connected • Tuition Coordination Active
+                        </div>
+                        <p className="text-emerald-800 leading-relaxed">
+                          Our ToppScorers coordinator will contact both parties to schedule your demo class and finalize tuition arrangements. Direct phone numbers remain private.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-slate-600 text-[11px] space-y-1">
+                        <div className="flex items-center font-bold text-slate-700">
+                          <FiLock className="mr-1.5 text-slate-400 flex-shrink-0" />
+                          Protected Mediation Model
+                        </div>
+                        <p className="text-slate-500 leading-relaxed">
+                          Direct phone numbers are never shared publicly. To ensure safety and teaching quality, ToppScorers coordinates directly between students and teachers to arrange physical tuitions.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -13,6 +13,7 @@ import { authenticate, optionalAuth, authorize } from '../middleware/auth.js';
 import { directoryLimiter, profileViewLimiter } from '../middleware/rateLimiter.js';
 import { serializeProfile } from '../utils/serializeProfile.js';
 import { validateUniquePhone } from '../utils/identityValidator.js';
+import { checkAndNotifyPhoneChange } from '../utils/notifyAdminOnPhoneChange.js';
 
 const router = express.Router();
 
@@ -512,10 +513,18 @@ router.put('/profile', authenticate, authorize('teacher'), async (req, res) => {
     delete updateData.approvalStatus;
     delete updateData.verificationStatus;
 
+    const oldPhone = req.user.phone || '';
+    let phoneChanged = false;
+    let newPhoneVal = '';
+
     if (phone !== undefined && phone.trim()) {
       const phoneValidation = await validateUniquePhone(phone, req.user._id, false);
       if (!phoneValidation.isValid) {
         return res.status(400).json({ message: phoneValidation.message });
+      }
+      if (oldPhone && oldPhone !== phoneValidation.phone) {
+        phoneChanged = true;
+        newPhoneVal = phoneValidation.phone;
       }
       await User.findByIdAndUpdate(req.user._id, {
         ...(name && { name }),
@@ -533,6 +542,12 @@ router.put('/profile', authenticate, authorize('teacher'), async (req, res) => {
     ).populate('userId', 'name email phone avatar role');
 
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    if (phoneChanged && newPhoneVal) {
+      await checkAndNotifyPhoneChange({ user: profile.userId || req.user, oldPhone, newPhone: newPhoneVal }).catch(err => {
+        console.error('Failed to notify admin on teacher phone change:', err);
+      });
+    }
     res.json(serializeProfile(profile, req.user));
   } catch (error) {
     res.status(500).json({ message: error.message });

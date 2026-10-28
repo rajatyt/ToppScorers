@@ -29,7 +29,7 @@ const FindTeachers = () => {
   // If logged-in as teacher, redirect to /students
   useEffect(() => {
     if (user && user.role === 'teacher') {
-      toast('Teachers browse the Find Students directory', { icon: 'ℹ️' });
+      toast('Tutors browse the Find Students directory', { icon: 'ℹ️' });
       navigate('/students', { replace: true });
     }
   }, [user, navigate]);
@@ -158,7 +158,7 @@ const FindTeachers = () => {
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  placeholder={t('common.searchTeachersPlaceholder', 'Search by subject, teacher name, or area...')}
+                  placeholder={t('common.searchTeachersPlaceholder', 'Search by subject, tutor name, or area...')}
                   className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-slate-400 text-white font-medium"
                 />
                 {search && (
@@ -439,9 +439,9 @@ const FindTeachers = () => {
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
                   <FaChalkboardTeacher size={28} />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 mb-1">No teachers match your search</h3>
+                <h3 className="text-base font-bold text-slate-900 mb-1">No tutors match your search</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
-                  Try broadening your subject, exam, or city filters to view more educators.
+                  Try broadening your subject, exam, or city filters to view more tutors.
                 </p>
                 <button
                   type="button"

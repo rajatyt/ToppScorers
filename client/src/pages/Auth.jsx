@@ -13,7 +13,7 @@ import {
 import {
   FiLogIn, FiUserCheck, FiBookOpen, FiArrowRight, FiArrowLeft,
   FiMail, FiLock, FiUser, FiPhone, FiCheckCircle, FiKey,
-  FiExternalLink, FiCopy,
+  FiExternalLink, FiCopy, FiEye, FiEyeOff
 } from 'react-icons/fi';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
@@ -73,28 +73,46 @@ const FloatingBackground = () => {
   );
 };
 
-const Input = ({ icon: Ic, label, error, ...props }) => (
-  <div>
-    <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
-    <div className="relative">
-      <Ic className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-rose-500' : 'text-slate-400'}`} size={16} />
-      <input
-        {...props}
-        className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 shadow-2xs focus:outline-none ${
-          error
-            ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 placeholder:text-rose-300 focus:ring-4 focus:ring-rose-500/15 focus:border-rose-600'
-            : 'bg-slate-50/70 focus:bg-white border border-slate-200/90 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500'
-        }`}
-      />
+const Input = ({ icon: Ic, label, error, type, ...props }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordField = type === 'password';
+  const effectiveType = isPasswordField ? (showPassword ? 'text' : 'password') : type;
+
+  return (
+    <div>
+      <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
+      <div className="relative">
+        <Ic className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-rose-500' : 'text-slate-400'}`} size={16} />
+        <input
+          type={effectiveType}
+          {...props}
+          className={`w-full pl-10 ${isPasswordField ? 'pr-11' : 'pr-4'} py-2.5 rounded-xl text-sm font-medium transition-all duration-200 shadow-2xs focus:outline-none ${
+            error
+              ? 'border-2 border-rose-500 bg-rose-50/40 text-rose-950 placeholder:text-rose-300 focus:ring-4 focus:ring-rose-500/15 focus:border-rose-600'
+              : 'bg-slate-50/70 focus:bg-white border border-slate-200/90 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500'
+          }`}
+        />
+        {isPasswordField && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1.5 cursor-pointer flex items-center justify-center rounded-lg hover:bg-slate-100"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            tabIndex={-1}
+          >
+            {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+          <FaExclamationCircle className="shrink-0 text-rose-500" size={13} />
+          <span>{error}</span>
+        </p>
+      )}
     </div>
-    {error && (
-      <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
-        <FaExclamationCircle className="shrink-0 text-rose-500" size={13} />
-        <span>{error}</span>
-      </p>
-    )}
-  </div>
-);
+  );
+};
 
 /* ──────────────────────────────  main Auth  ──────────────────────────────── */
 const Auth = () => {
