@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import {
   FaGraduationCap, FaBars, FaTimes, FaChalkboardTeacher,
   FaUserGraduate, FaUserFriends, FaCog, FaSignOutAlt,
-  FaUserEdit, FaAward, FaQuestionCircle, FaThLarge, FaShieldAlt
+  FaUserEdit, FaAward, FaQuestionCircle, FaThLarge, FaShieldAlt, FaBookmark
 } from 'react-icons/fa';
 import { FiUser, FiSliders } from 'react-icons/fi';
 import { NotificationContext } from '../context/NotificationContext';
@@ -260,6 +260,16 @@ const Navbar = () => {
                       )}
                     </Link>
 
+                    <Link
+                      to="/dashboard#saved-section"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
+                    >
+                      <span className="flex items-center space-x-2.5">
+                        <FaBookmark className="text-amber-500 flex-shrink-0" size={13} />
+                        <span>Saved Shortlist</span>
+                      </span>
+                    </Link>
+
                     {isTeacher && (
                       <>
                         <Link
@@ -449,6 +459,10 @@ const Navbar = () => {
                       {unreadCounts.total}
                     </span>
                   )}
+                </Link>
+                <Link to="/dashboard#saved-section" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg text-slate-800 hover:bg-slate-50 flex items-center space-x-2">
+                  <FaBookmark className="text-amber-500" size={13} />
+                  <span>Saved Shortlist</span>
                 </Link>
                 {isTeacher && (
                   <div className="py-1 my-1 border-y border-slate-100 space-y-1">
