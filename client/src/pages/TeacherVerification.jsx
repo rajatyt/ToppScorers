@@ -1009,7 +1009,7 @@ const TeacherVerification = () => {
               </p>
               <p className="mt-0.5 text-slate-500">
                 Optional items (CTET/B.Ed certificates, coaching institute history, demo video lecture links, and reference contacts) are conveniently managed in your{' '}
-                <Link to="/profile" className="text-amber-600 font-bold hover:underline">
+                <Link to="/profile?tab=qualifications" className="text-amber-600 font-bold hover:underline">
                   Educator Profile
                 </Link>{' '}
                 section without blocking your verification badge.
