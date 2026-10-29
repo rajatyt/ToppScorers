@@ -208,6 +208,22 @@ const TeacherVerification = () => {
     fetchVerification();
   }, [isAuthenticated, user?.role, navigate]);
 
+  // Restore scroll position when returning from Educator Profile
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem('verificationScrollY');
+      if (savedScroll) {
+        sessionStorage.removeItem('verificationScrollY');
+        setTimeout(() => {
+          window.scrollTo({
+            top: parseInt(savedScroll, 10),
+            behavior: 'smooth'
+          });
+        }, 80);
+      }
+    }
+  }, [loading]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -1009,7 +1025,14 @@ const TeacherVerification = () => {
               </p>
               <p className="mt-0.5 text-slate-500">
                 Optional items (CTET/B.Ed certificates, coaching institute history, demo video lecture links, and reference contacts) are conveniently managed in your{' '}
-                <Link to="/profile?tab=qualifications" className="text-amber-600 font-bold hover:underline">
+                <Link
+                  to="/profile?tab=qualifications"
+                  onClick={() => {
+                    sessionStorage.setItem('verificationScrollY', String(window.scrollY));
+                  }}
+                  state={{ from: 'verification' }}
+                  className="text-amber-600 font-bold hover:underline"
+                >
                   Educator Profile
                 </Link>{' '}
                 section without blocking your verification badge.

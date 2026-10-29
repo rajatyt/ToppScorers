@@ -24,10 +24,15 @@ const TeacherProfileEdit = () => {
   );
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const tabParam = new URLSearchParams(location.search).get('tab');
     if (tabParam === 'qualifications' || tabParam === 'general') {
       setActiveTab(tabParam);
     }
+    window.scrollTo(0, 0);
   }, [location.search]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -139,6 +144,7 @@ const TeacherProfileEdit = () => {
         toast.error('Failed to load profile details');
       } finally {
         setLoading(false);
+        window.scrollTo(0, 0);
       }
     };
 
@@ -258,13 +264,20 @@ const TeacherProfileEdit = () => {
       <div className="max-w-4xl mx-auto">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/verification');
+              }
+            }}
+            className="inline-flex items-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
           >
             <FaArrowLeft className="mr-1.5" />
-            {t('common.back')} {t('nav.dashboard')}
-          </Link>
+            {location.state?.from === 'verification' ? 'Back to Verification' : `${t('common.back')} ${t('nav.dashboard')}`}
+          </button>
 
           <Link
             to="/verification"
