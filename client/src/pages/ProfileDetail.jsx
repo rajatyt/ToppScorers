@@ -10,7 +10,7 @@ import {
   FaCheckCircle, FaStar, FaMapMarkerAlt, FaBookmark, FaRegBookmark,
   FaChalkboardTeacher, FaUserGraduate, FaRupeeSign, FaShieldAlt,
   FaPhoneAlt, FaEnvelope, FaVideo, FaAward, FaCalendarAlt,
-  FaClock, FaCompass, FaFlag, FaBan, FaArrowLeft, FaBookOpen
+  FaClock, FaCompass, FaFlag, FaBan, FaArrowLeft, FaBookOpen, FaTrashAlt
 } from 'react-icons/fa';
 import { FiLock, FiCheck, FiArrowRight, FiCopy, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
@@ -19,7 +19,7 @@ const ProfileDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user, profile: currentUserProfile, isAuthenticated } = useContext(AuthContext);
 
   const isTeacherRoute = location.pathname.startsWith('/teachers');
   const profileType = isTeacherRoute ? 'teacher' : 'student';
@@ -34,6 +34,7 @@ const ProfileDetail = () => {
   const [copiedJobId, setCopiedJobId] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [isCoordinationOpen, setIsCoordinationOpen] = useState(false);
+  const [cancellingRequest, setCancellingRequest] = useState(false);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -104,6 +105,46 @@ const ProfileDetail = () => {
       toast.error(err.response?.data?.message || 'Failed to block user');
     } finally {
       setBlocking(false);
+    }
+  };
+
+  const handleOpenConnect = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (user?.role === 'teacher') {
+      const isVerified = Boolean(currentUserProfile?.isVerified && currentUserProfile?.verificationStatus === 'verified');
+      if (!isVerified) {
+        toast.error('Please complete teacher verification before sending connection requests');
+        navigate('/verification');
+        return;
+      }
+    } else if (user?.role === 'student') {
+      const isVerified = Boolean(currentUserProfile?.isVerified && currentUserProfile?.verificationStatus === 'verified');
+      if (!isVerified) {
+        window.dispatchEvent(new CustomEvent('open-student-verification-modal'));
+        return;
+      }
+    }
+    setShowConnectModal(true);
+  };
+
+  const handleCancelRequest = async () => {
+    const targetUserId = profile?.userId?._id;
+    if (!targetUserId) return;
+    if (!window.confirm('Are you sure you want to cancel and remove this connection request?')) {
+      return;
+    }
+    setCancellingRequest(true);
+    try {
+      await api.delete(`/connections/target/${targetUserId}`);
+      toast.success('Connection request cancelled and removed');
+      fetchProfile();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to cancel request');
+    } finally {
+      setCancellingRequest(false);
     }
   };
 
@@ -323,13 +364,25 @@ const ProfileDetail = () => {
                     Connected • Contact Details Unlocked
                   </div>
                 ) : isPending ? (
-                  <div className="inline-flex items-center px-5 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 font-bold text-xs shadow-xs">
-                    <FaClock className="mr-1.5 text-amber-600" />
-                    Connection Request Pending
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center px-4 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 font-bold text-xs shadow-xs">
+                      <FaClock className="mr-1.5 text-amber-600" />
+                      <span>Connection Request Pending</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelRequest}
+                      disabled={cancellingRequest}
+                      className="inline-flex items-center px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      title="Withdraw and remove this connection request"
+                    >
+                      <FaTrashAlt className="mr-1.5 text-[11px]" />
+                      <span>{cancellingRequest ? 'Removing...' : 'Cancel Request'}</span>
+                    </button>
                   </div>
                 ) : (
                   <button
-                    onClick={() => setShowConnectModal(true)}
+                    onClick={handleOpenConnect}
                     className="w-full sm:w-auto px-6 py-3 text-slate-950 font-black text-sm rounded-xl gold-button-halo transition-all active:scale-[0.98] cursor-pointer"
                   >
                     Connect / Book Demo Class

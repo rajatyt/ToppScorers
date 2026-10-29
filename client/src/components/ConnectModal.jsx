@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { FaUserPlus, FaTimes, FaShieldAlt, FaLock, FaArrowRight, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 
 const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user, profile: currentUserProfile, isAuthenticated } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [verificationNotice, setVerificationNotice] = useState(null);
 
@@ -16,6 +18,30 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
   const targetUser = targetProfile.userId || {};
   const targetName = targetProfile.name || targetUser.name || 'User';
 
+  const isTeacher = user?.role === 'teacher';
+  const isStudent = user?.role === 'student';
+  const isUserVerified = user?.role === 'admin' || (
+    currentUserProfile &&
+    currentUserProfile.isVerified === true &&
+    currentUserProfile.verificationStatus === 'verified'
+  );
+
+  const activeNotice = verificationNotice || (!isUserVerified && isAuthenticated ? {
+    role: user?.role || 'teacher',
+    status: currentUserProfile?.verificationStatus || 'unverified',
+    message: isTeacher
+      ? (currentUserProfile?.verificationStatus === 'pending'
+          ? 'Your teacher verification is currently under review by our team. You cannot send connection requests until your documents are approved.'
+          : currentUserProfile?.verificationStatus === 'rejected'
+          ? `Your verification was not approved: "${currentUserProfile?.rejectionReason || 'Please resubmit valid credentials'}". Update your documents to send requests.`
+          : 'Verification Required: Only verified educators can initiate connection requests. Please complete your verification to unlock student outreach.')
+      : (currentUserProfile?.verificationStatus === 'pending'
+          ? 'Your student/parent contact verification is currently under review by our team. You cannot send connection requests until your details are approved.'
+          : currentUserProfile?.verificationStatus === 'rejected'
+          ? `Your contact verification was not approved: "${currentUserProfile?.rejectionReason || 'Invalid details'}". Update your contact details to continue.`
+          : 'Verification Required: Please verify your phone number and email to establish yourself as a genuine student or parent before sending tuition requests.')
+  } : null);
+
   const handleModalClose = () => {
     setVerificationNotice(null);
     onClose();
@@ -23,6 +49,17 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error('Please login to send connection requests');
+      navigate('/login');
+      return;
+    }
+
+    if (!isUserVerified) {
+      setVerificationNotice(activeNotice);
+      return;
+    }
+
     if (!targetUser._id) {
       toast.error('Unable to send request: invalid user ID');
       return;
@@ -40,7 +77,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
     } catch (err) {
       if (err.response?.data?.verificationRequired) {
         setVerificationNotice({
-          role: err.response.data.verificationRole || 'teacher',
+          role: err.response.data.verificationRole || user?.role || 'teacher',
           message: err.response.data.message,
           status: err.response.data.verificationStatus || 'unverified'
         });
@@ -52,7 +89,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
     }
   };
 
-  const isStudentNotice = verificationNotice?.role === 'student';
+  const isStudentNotice = activeNotice?.role === 'student';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 overflow-y-auto animate-fadeInUp">
@@ -64,7 +101,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
           <FaTimes size={18} />
         </button>
 
-        {verificationNotice ? (
+        {activeNotice ? (
           <div className="text-center py-2 space-y-4">
             <div className={`w-14 h-14 rounded-2xl ${isStudentNotice ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-600'} flex items-center justify-center mx-auto shadow-sm`}>
               <FaLock size={24} />
@@ -75,7 +112,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
                 {isStudentNotice ? 'Student / Parent Verification Required' : 'Teacher Verification Required'}
               </h3>
               <p className="text-xs text-slate-600 mt-2 leading-relaxed px-2">
-                {verificationNotice.message}
+                {activeNotice.message}
               </p>
             </div>
 
@@ -119,7 +156,7 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
                     : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950'
                 } font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center cursor-pointer`}
               >
-                {verificationNotice.status === 'pending'
+                {activeNotice.status === 'pending'
                   ? 'Verification Under Review'
                   : isStudentNotice
                   ? 'Verify Details Now'

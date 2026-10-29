@@ -29,42 +29,43 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'Target user not found or inactive' });
     }
 
-    // Role Rule: Teachers must be verified before initiating connection requests to students
-    if (req.user.role === 'teacher' && targetUser.role === 'student') {
+    // Verification Gate: Unverified teachers and students cannot initiate connection requests
+    if (req.user.role === 'teacher') {
       const teacherProf = await TeacherProfile.findOne({ userId: fromUserId });
-      if (!teacherProf || !teacherProf.isVerified || teacherProf.verificationStatus !== 'verified') {
+      const isVerified = Boolean(teacherProf && teacherProf.isVerified && teacherProf.verificationStatus === 'verified');
+      if (!isVerified) {
         const vStatus = teacherProf?.verificationStatus || 'unverified';
         return res.status(403).json({
           message: vStatus === 'pending'
-            ? 'Your verification is currently under review by our team. You cannot send connection requests to students until your documents are approved.'
+            ? 'Your verification is currently under review by our team. You cannot send connection requests until your documents are approved.'
             : vStatus === 'rejected'
-            ? `Your verification was not approved: "${teacherProf?.rejectionReason || 'Please resubmit valid credentials'}". Update your documents to contact students.`
-            : 'Verification Required: Only verified teachers can send connection requests to students. Complete teacher verification to unlock student outreach.',
+            ? `Your verification was not approved: "${teacherProf?.rejectionReason || 'Please resubmit valid credentials'}". Update your documents to send requests.`
+            : 'Verification Required: Only verified teachers can send connection requests. Complete teacher verification to unlock student outreach.',
           verificationRequired: true,
           verificationRole: 'teacher',
           verificationStatus: vStatus,
           rejectionReason: teacherProf?.rejectionReason || ''
         });
       }
-    }
-
-    // Role Rule: Students/Parents must be verified before initiating connection requests to teachers
-    if (req.user.role === 'student' && targetUser.role === 'teacher') {
+    } else if (req.user.role === 'student') {
       const studentProf = await StudentProfile.findOne({ userId: fromUserId });
-      if (!studentProf || !studentProf.isVerified || studentProf.verificationStatus !== 'verified') {
+      const isVerified = Boolean(studentProf && studentProf.isVerified && studentProf.verificationStatus === 'verified');
+      if (!isVerified) {
         const vStatus = studentProf?.verificationStatus || 'unverified';
         return res.status(403).json({
           message: vStatus === 'pending'
-            ? 'Your verification is currently under review by our team. You cannot send connection requests to teachers until your phone & email are verified.'
+            ? 'Your verification is currently under review by our team. You cannot send connection requests until your contact phone & email are verified.'
             : vStatus === 'rejected'
             ? `Your verification was not approved: "${studentProf?.rejectionReason || 'Invalid contact details'}". Update your contact details to continue.`
-            : 'Verification Required: Please verify your contact phone number and email to establish yourself as a genuine student or parent before sending requests to teachers.',
+            : 'Verification Required: Please verify your contact phone number and email to establish yourself as a genuine student or parent before sending tuition requests.',
           verificationRequired: true,
           verificationRole: 'student',
           verificationStatus: vStatus,
           rejectionReason: studentProf?.rejectionReason || ''
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only verified educators or students can send connection requests' });
     }
 
     // Check if either user has blocked the other
@@ -318,6 +319,69 @@ router.post('/mark-viewed', async (req, res) => {
     }
 
     res.json({ message: `Section ${type || 'all'} marked as viewed` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/connections/:id - Cancel/remove a connection request by ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const request = await ConnectionRequest.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ message: 'Connection request not found' });
+    }
+
+    const isSender = request.fromUserId.toString() === userId.toString();
+    const isRecipient = request.toUserId.toString() === userId.toString();
+
+    if (!isSender && !isRecipient) {
+      return res.status(403).json({ message: 'You are not authorized to remove this request' });
+    }
+
+    await ConnectionRequest.findByIdAndDelete(req.params.id);
+
+    res.json({
+      message: 'Connection request cancelled and removed successfully',
+      requestId: req.params.id
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/connections/target/:targetUserId - Cancel/remove connection request by target user ID
+router.delete('/target/:targetUserId', async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { targetUserId } = req.params;
+
+    const request = await ConnectionRequest.findOne({
+      $or: [
+        { fromUserId: userId, toUserId: targetUserId },
+        { fromUserId: targetUserId, toUserId: userId }
+      ]
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: 'No connection request found for this user' });
+    }
+
+    const isSender = request.fromUserId.toString() === userId.toString();
+    const isRecipient = request.toUserId.toString() === userId.toString();
+
+    if (!isSender && !isRecipient) {
+      return res.status(403).json({ message: 'You are not authorized to remove this request' });
+    }
+
+    await ConnectionRequest.findByIdAndDelete(request._id);
+
+    res.json({
+      message: 'Connection request cancelled and removed successfully',
+      requestId: request._id
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

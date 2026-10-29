@@ -221,6 +221,11 @@ export function serializeProfile(profile, requestingUser = null, connectionStatu
     verificationPhone: raw.verificationPhone || user.phone || '',
     verificationEmail: raw.verificationEmail || user.email || '',
     contactVerified: Boolean(raw.isVerified && raw.verificationStatus === 'verified'),
+    isVerified: Boolean(raw.isVerified && raw.verificationStatus === 'verified'),
+    verificationStatus: raw.verificationStatus || (raw.isVerified ? 'verified' : 'unverified'),
+    verificationSubmittedAt: raw.verificationSubmittedAt || null,
+    verifiedAt: raw.verifiedAt || null,
+    rejectionReason: raw.rejectionReason || '',
 
     // Location privacy
     area: raw.area || '',

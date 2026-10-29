@@ -8,7 +8,7 @@ import {
   FaUserGraduate, FaChalkboardTeacher, FaInbox, FaPaperPlane,
   FaCheckCircle, FaEye, FaBookmark, FaCog, FaShieldAlt, FaArrowRight,
   FaClock, FaExclamationTriangle, FaAward, FaUserFriends, FaMapMarkerAlt,
-  FaQuoteLeft, FaUserEdit, FaQuestionCircle
+  FaQuoteLeft, FaUserEdit, FaQuestionCircle, FaTrashAlt
 } from 'react-icons/fa';
 import { FiSliders, FiUser, FiLock, FiRefreshCw } from 'react-icons/fi';
 import { NotificationContext } from '../context/NotificationContext';
@@ -114,6 +114,25 @@ const Dashboard = () => {
       if (fetchUnreadCounts) fetchUnreadCounts();
     } catch (err) {
       toast.error(err.response?.data?.message || `Failed to ${action} request`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    if (!window.confirm('Are you sure you want to withdraw and remove this connection request?')) {
+      return;
+    }
+    setActionLoading(requestId);
+    try {
+      const res = await api.delete(`/connections/${requestId}`);
+      toast.success(res.data?.message || 'Connection request cancelled and removed');
+      setRequests(prev => prev.filter(r => r._id !== requestId));
+      const metricsRes = await api.get('/auth/dashboard-metrics').catch(() => null);
+      if (metricsRes?.data) setMetrics(metricsRes.data);
+      if (fetchUnreadCounts) fetchUnreadCounts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to cancel request');
     } finally {
       setActionLoading(null);
     }
@@ -1078,6 +1097,32 @@ const Dashboard = () => {
                               <span>Accept & Connect</span>
                             </button>
                           </>
+                        )}
+
+                        {!isIncoming && isPending && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(item._id)}
+                            disabled={actionLoading === item._id}
+                            className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            title="Withdraw and remove this pending inquiry"
+                          >
+                            <FaTrashAlt className="text-xs" />
+                            <span>Cancel Request</span>
+                          </button>
+                        )}
+
+                        {!isIncoming && isDeclined && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(item._id)}
+                            disabled={actionLoading === item._id}
+                            className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            title="Clear this declined request"
+                          >
+                            <FaTrashAlt className="text-xs" />
+                            <span>Clear</span>
+                          </button>
                         )}
 
                         {profileId && (
