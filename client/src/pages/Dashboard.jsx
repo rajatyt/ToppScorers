@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
-import ProfileCard from '../components/ProfileCard';
 import { toast } from 'react-hot-toast';
 import {
   FaUserGraduate, FaChalkboardTeacher, FaInbox, FaPaperPlane,
@@ -712,19 +711,31 @@ const Dashboard = () => {
                 <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{metrics?.profileViewsCount || 0}</div>
                 <div className="text-xs text-slate-500 font-medium">Profile Views</div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/saved')}
+                className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-amber-400 hover:shadow-md transition-all text-left group cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <FaBookmark size={18} />
+                </div>
+                <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{savedProfiles.length || 0}</div>
+                <div className="text-xs text-slate-500 font-medium group-hover:text-amber-600 transition-colors">Bookmarked Students</div>
+              </button>
             </>
           ) : (
             <>
               <button
                 type="button"
-                onClick={() => document.getElementById('saved-section')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => navigate('/saved')}
                 className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-amber-400 hover:shadow-md transition-all text-left group cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                   <FaBookmark size={18} />
                 </div>
                 <div className="text-2xl sm:text-3xl font-display tabular-nums font-black text-slate-900">{savedProfiles.length || metrics?.savedCount || 0}</div>
-                <div className="text-xs text-slate-500 font-medium group-hover:text-amber-600 transition-colors">Saved Tutors (Click to view)</div>
+                <div className="text-xs text-slate-500 font-medium group-hover:text-amber-600 transition-colors">Saved Tutors</div>
               </button>
 
               <button
@@ -1126,70 +1137,6 @@ const Dashboard = () => {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-
-        {/* Bookmarked / Saved Profiles Section */}
-        <div id="saved-section" className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs mb-8 scroll-mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
-                <FaBookmark size={18} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {isTeacher ? 'Bookmarked Students' : 'Saved Tutors & Shortlist'} ({savedProfiles.length})
-                </h2>
-                <p className="text-xs text-slate-500">
-                  {isTeacher 
-                    ? 'Shortlisted students you have saved from the directory.' 
-                    : 'Your saved educators ready for direct tuition coordination.'}
-                </p>
-              </div>
-            </div>
-            <Link 
-              to={isTeacher ? "/students" : "/teachers"} 
-              className="text-xs text-amber-600 font-bold hover:underline flex items-center self-start sm:self-auto"
-            >
-              <span>{isTeacher ? 'Browse Students' : 'Explore More Tutors'}</span>
-              <FaArrowRight className="ml-1" size={10} />
-            </Link>
-          </div>
-
-          {savedProfiles.length === 0 ? (
-            <div className="text-center py-10 px-4 bg-slate-50/70 rounded-2xl border border-dashed border-slate-200">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                <FaBookmark size={20} />
-              </div>
-              <h3 className="text-sm font-bold text-slate-800">No saved profiles yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                {isTeacher
-                  ? 'Click the bookmark icon on any student profile in the directory to save them here for quick access.'
-                  : 'Click the bookmark icon on any tutor profile card to shortlist them and coordinate tuitions later.'}
-              </p>
-              <Link
-                to={isTeacher ? "/students" : "/teachers"}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-all"
-              >
-                {isTeacher ? 'Find Students Now' : 'Find Tutors Now'}
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {savedProfiles.map((item) => (
-                <ProfileCard
-                  key={item._id}
-                  profile={item.profile}
-                  type={item.profileType || (isTeacher ? 'student' : 'teacher')}
-                  isSaved={true}
-                  onToggleSave={async (pId, pType, tId) => {
-                    await api.post('/saved/toggle', { profileId: pId, profileType: pType, targetUserId: tId });
-                    setSavedProfiles(prev => prev.filter(p => p.profile._id !== pId));
-                    toast.success('Removed from shortlist');
-                  }}
-                />
-              ))}
             </div>
           )}
         </div>

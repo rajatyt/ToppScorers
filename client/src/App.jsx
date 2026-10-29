@@ -23,6 +23,7 @@ import AdminRoutes from './pages/admin/AdminRoutes';
 import AdminLogin from './pages/admin/AdminLogin';
 import TeacherVerification from './pages/TeacherVerification';
 import TeacherProfileEdit from './pages/TeacherProfileEdit';
+import SavedProfiles from './pages/SavedProfiles';
 import SupportQueries from './pages/SupportQueries';
 import ResetPassword from './pages/ResetPassword';
 import TeacherVerificationPromptModal from './components/TeacherVerificationPromptModal';
@@ -84,6 +85,14 @@ function AppContent() {
               <Dashboard />
             </ProtectedRoute>
           } />
+
+          <Route path="/saved" element={
+            <ProtectedRoute>
+              <SavedProfiles />
+            </ProtectedRoute>
+          } />
+          <Route path="/bookmarks" element={<Navigate to="/saved" replace />} />
+          <Route path="/shortlist" element={<Navigate to="/saved" replace />} />
 
           <Route path="/profile" element={
             <ProtectedRoute allowedRoles={['teacher']}>
