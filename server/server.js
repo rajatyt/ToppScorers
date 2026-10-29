@@ -62,11 +62,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root / Health check endpoints
 app.get(['/api', '/api/health'], (req, res) => {
+  const hasUri = Boolean(process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL);
   res.json({
     status: 'healthy',
     message: 'ToppScorers API is running',
     version: '2.0.0',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    hasMongoUri: hasUri,
+    database: mongoose.connection.readyState === 1 ? 'connected' : (mongoose.connection.readyState === 2 ? 'connecting' : 'disconnected'),
+    readyState: mongoose.connection.readyState,
     endpoints: {
       auth: '/api/auth',
       teachers: '/api/teachers',
@@ -91,11 +94,22 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Database connection readiness check for API calls
-app.use('/api', (req, res, next) => {
+app.use('/api', async (req, res, next) => {
+  // Never block health check endpoint
+  if (req.path === '/health' || req.path === '/') {
+    return next();
+  }
+
   if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({
-      message: 'Database not connected. Please add your MongoDB Atlas URI to server/.env.'
-    });
+    // Attempt an on-demand connection if not connected
+    await connectDB().catch(() => {});
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: 'Database not connected. Please ensure MONGODB_URI is configured.',
+        hasMongoUri: Boolean(process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL),
+        readyState: mongoose.connection.readyState
+      });
+    }
   }
   next();
 });
