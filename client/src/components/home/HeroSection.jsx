@@ -603,7 +603,7 @@ const HeroSection = () => {
             </div>
             <div>
               <h3 className="font-display font-bold text-white text-sm sm:text-base">100% Verified Faculty</h3>
-              <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">Aadhaar identity, university degrees & police audited.</p>
+              <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">Aadhaar identity & university degrees audited.</p>
             </div>
           </div>
 
