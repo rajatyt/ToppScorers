@@ -105,22 +105,6 @@ const FindStudents = () => {
       navigate('/login');
       return;
     }
-
-    if (user?.role === 'teacher') {
-      const isVerified = Boolean(userProfile?.isVerified && userProfile?.verificationStatus === 'verified');
-      if (!isVerified) {
-        toast.error('Please complete teacher verification before sending connection requests');
-        navigate('/verification');
-        return;
-      }
-    } else if (user?.role === 'student') {
-      const isVerified = Boolean(userProfile?.isVerified && userProfile?.verificationStatus === 'verified');
-      if (!isVerified) {
-        window.dispatchEvent(new CustomEvent('open-student-verification-modal'));
-        return;
-      }
-    }
-
     setConnectTarget(profile);
   };
 

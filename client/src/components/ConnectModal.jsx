@@ -103,42 +103,90 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
 
         {activeNotice ? (
           <div className="text-center py-2 space-y-4">
-            <div className={`w-14 h-14 rounded-2xl ${isStudentNotice ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-600'} flex items-center justify-center mx-auto shadow-sm`}>
-              <FaLock size={24} />
+            <div className={`w-14 h-14 rounded-2xl ${isStudentNotice ? 'bg-emerald-100 text-emerald-700' : 'bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950'} flex items-center justify-center mx-auto shadow-md`}>
+              <FaShieldAlt size={26} />
             </div>
 
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900">
-                {isStudentNotice ? 'Student / Parent Verification Required' : 'Teacher Verification Required'}
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-1.5 ${
+                isStudentNotice ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {isStudentNotice ? 'Contact Verification Required' : 'Teacher Verification Required'}
+              </span>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                {isStudentNotice
+                  ? 'Verify Your Contact Details'
+                  : 'Complete Profile Verification to Connect'}
               </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed px-2">
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed max-w-sm mx-auto">
                 {activeNotice.message}
               </p>
             </div>
 
-            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-600 text-left space-y-1.5">
-              <div className="font-bold text-slate-800">
-                ToppScorers Safety Policy:
+            {/* Why Verification is Important */}
+            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 text-left space-y-2.5 shadow-2xs">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center justify-between">
+                <span>Why Verification is Important:</span>
+                <span className="text-[10px] text-amber-700 font-bold">Prayagraj Standard</span>
               </div>
-              <p className="text-[11px] leading-relaxed">
-                {isStudentNotice
-                  ? 'To prevent fake inquiries and protect teachers, students and parents must verify their phone & email before sending tuition requests.'
-                  : 'To prevent spam and protect students, teachers must verify their credentials before initiating contact.'}
-              </p>
-              <p className={`text-[11px] ${isStudentNotice ? 'text-emerald-800' : 'text-amber-800'} font-semibold`}>
-                {isStudentNotice
-                  ? '✓ Verified parents and students receive direct teacher connections.'
-                  : '✓ Direct student requests unlock immediately upon admin verification.'}
-              </p>
+
+              {!isStudentNotice ? (
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div className="flex items-start space-x-2.5">
+                    <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-black">
+                      ✓
+                    </div>
+                    <div>
+                      <strong className="text-slate-900">Direct Student Outreach:</strong> Unlocks sending tuition requests directly to students and parents searching for educators.
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2.5">
+                    <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-black">
+                      ★
+                    </div>
+                    <div>
+                      <strong className="text-slate-900">Verified Educator Badge:</strong> Gain full parent trust with an official verification badge on directory cards.
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2.5">
+                    <div className="w-5 h-5 rounded-md bg-blue-500/20 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-black">
+                      🤝
+                    </div>
+                    <div>
+                      <strong className="text-slate-900">Tuition Coordination:</strong> ToppScorers managers coordinate verified demo classes and fee scheduling.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div className="flex items-start space-x-2.5">
+                    <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-black">
+                      ✓
+                    </div>
+                    <div>
+                      <strong className="text-slate-900">Direct Teacher Outreach:</strong> Confirms genuine student/parent inquiries to protect educators from spam.
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2.5">
+                    <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-black">
+                      🛡️
+                    </div>
+                    <div>
+                      <strong className="text-slate-900">Privacy Protection:</strong> Phone numbers are kept strictly private until direct coordination is approved.
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+            {/* Action Buttons: Skip for Now vs Verify Button */}
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={handleModalClose}
-                className="w-full sm:w-auto flex-1 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="w-full sm:w-auto flex-1 py-2.5 px-3 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
               >
-                Close
+                Skip for Now
               </button>
               <button
                 type="button"
@@ -150,18 +198,20 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
                     navigate('/verification');
                   }
                 }}
-                className={`w-full sm:w-auto flex-1 py-2.5 ${
+                className={`w-full sm:w-auto flex-1 py-2.5 px-4 ${
                   isStudentNotice
                     ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
-                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950'
-                } font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center cursor-pointer`}
+                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black'
+                } text-xs rounded-xl shadow-md transition-all flex items-center justify-center space-x-1.5 cursor-pointer hover:scale-[1.01]`}
               >
-                {activeNotice.status === 'pending'
-                  ? 'Verification Under Review'
-                  : isStudentNotice
-                  ? 'Verify Details Now'
-                  : 'Get Verified Now'}
-                <FaArrowRight className="ml-1.5" />
+                <span>
+                  {activeNotice.status === 'pending'
+                    ? 'Verification Under Review'
+                    : isStudentNotice
+                    ? 'Verify Contact Details'
+                    : 'Verify My Profile Now'}
+                </span>
+                <FaArrowRight size={11} />
               </button>
             </div>
           </div>
