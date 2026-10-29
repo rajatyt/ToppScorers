@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import ProfileCard from '../components/ProfileCard';
+import ConnectModal from '../components/ConnectModal';
 import { toast } from 'react-hot-toast';
 import { FaBookmark, FaArrowLeft, FaArrowRight, FaSearch, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
 
@@ -13,6 +14,7 @@ const SavedProfiles = () => {
   const [savedProfiles, setSavedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [connectTarget, setConnectTarget] = useState(null);
 
   const isTeacher = user?.role === 'teacher';
 
@@ -188,11 +190,20 @@ const SavedProfiles = () => {
                 type={item.profileType || (isTeacher ? 'student' : 'teacher')}
                 isSaved={true}
                 onToggleSave={handleToggleSave}
+                onConnect={(prof) => setConnectTarget(prof)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Connect Modal with Informative Verification Popup */}
+      <ConnectModal
+        isOpen={Boolean(connectTarget)}
+        onClose={() => setConnectTarget(null)}
+        targetProfile={connectTarget}
+        onSuccess={() => {}}
+      />
     </div>
   );
 };
