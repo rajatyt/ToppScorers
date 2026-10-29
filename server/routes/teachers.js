@@ -255,7 +255,18 @@ router.get('/verification', authenticate, authorize('teacher'), async (req, res)
       demoVideoUrl: profile.demoVideoUrl || '',
       experience: profile.experience || 0,
       subjects: profile.subjects || [],
-      exams: profile.exams || []
+      exams: profile.exams || [],
+      board: profile.board || 'ICSE',
+      teachingMode: profile.teachingMode || 'HOME',
+      feeAmount: profile.fee?.amount ?? 3000,
+      feePeriod: profile.fee?.period || 'monthly',
+      preferredTime: profile.preferredTime || 'After 4',
+      daysPerWeek: profile.daysPerWeek || '6 days a week',
+      tutorGender: profile.tutorGender || 'Any',
+      studentGender: profile.studentGender || 'Female',
+      city: profile.location?.city || 'Prayagraj',
+      area: profile.area || '',
+      pincode: profile.location?.pincode || ''
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -289,7 +300,18 @@ router.get('/me/verification', authenticate, authorize('teacher'), async (req, r
       demoVideoUrl: profile.demoVideoUrl || '',
       experience: profile.experience || 0,
       subjects: profile.subjects || [],
-      exams: profile.exams || []
+      exams: profile.exams || [],
+      board: profile.board || 'ICSE',
+      teachingMode: profile.teachingMode || 'HOME',
+      feeAmount: profile.fee?.amount ?? 3000,
+      feePeriod: profile.fee?.period || 'monthly',
+      preferredTime: profile.preferredTime || 'After 4',
+      daysPerWeek: profile.daysPerWeek || '6 days a week',
+      tutorGender: profile.tutorGender || 'Any',
+      studentGender: profile.studentGender || 'Female',
+      city: profile.location?.city || 'Prayagraj',
+      area: profile.area || '',
+      pincode: profile.location?.pincode || ''
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -339,7 +361,10 @@ router.post(
         currentOrPastInstitute, designation,
         referenceName, referenceRelation, referencePhone, referenceEmail,
         teachingPhilosophy, bio, demoVideoUrl, experience,
-        subjects, exams
+        subjects, exams,
+        board, teachingMode, feeAmount, feePeriod,
+        preferredTime, daysPerWeek, tutorGender, studentGender,
+        city, area, pincode
       } = req.body;
 
       // Identity
@@ -389,6 +414,26 @@ router.post(
       }
       if (exams) {
         profile.exams = Array.isArray(exams) ? exams : exams.split(',').map(e => e.trim()).filter(Boolean);
+      }
+      if (board) profile.board = board;
+      if (teachingMode) profile.teachingMode = teachingMode;
+      if (feeAmount !== undefined && feeAmount !== '') {
+        if (!profile.fee) profile.fee = {};
+        profile.fee.amount = Number(feeAmount) || 3000;
+      }
+      if (feePeriod) {
+        if (!profile.fee) profile.fee = {};
+        profile.fee.period = feePeriod;
+      }
+      if (preferredTime) profile.preferredTime = preferredTime;
+      if (daysPerWeek) profile.daysPerWeek = daysPerWeek;
+      if (tutorGender) profile.tutorGender = tutorGender;
+      if (studentGender) profile.studentGender = studentGender;
+      if (city || area || pincode) {
+        if (!profile.location) profile.location = {};
+        if (city) profile.location.city = city;
+        if (pincode) profile.location.pincode = pincode;
+        if (area) profile.area = area;
       }
 
       // Set status to pending review
