@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import ActiveSession from '../models/ActiveSession.js';
 import { 
@@ -87,6 +88,10 @@ export const authenticate = async (req, res, next) => {
     clearCookiesForScope(res);
     return res.status(401).json({ message: 'Authentication required. Please log in.' });
   } catch (error) {
+    // If it's a database connectivity issue during cold start or redeploy, don't destroy user cookies!
+    if (mongoose.connection.readyState !== 1 || error.name?.includes('Mongo') || error.name?.includes('Mongoose')) {
+      return res.status(503).json({ message: 'Database connection in progress. Please retry.' });
+    }
     clearCookiesForScope(res);
     return res.status(401).json({ message: 'Not authorized, session validation failed' });
   }
