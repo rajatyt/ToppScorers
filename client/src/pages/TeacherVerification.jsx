@@ -179,16 +179,8 @@ const TeacherVerification = () => {
       toast.error('Government ID Number is required');
       return;
     }
-    if (!existingDocs.govtIdDocUrl && !files.govtIdDoc) {
-      toast.error('Please upload your Government ID document (Aadhaar/PAN/Voter ID)');
-      return;
-    }
     if (!formData.highestDegree?.trim()) {
       toast.error('Highest Degree qualification is required');
-      return;
-    }
-    if (!existingDocs.degreeDocUrl && !files.degreeDoc) {
-      toast.error('Please upload your Degree / Certificate document');
       return;
     }
 
@@ -760,7 +752,7 @@ const TeacherVerification = () => {
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {t('verification.uploadIdDoc', 'Upload ID Document')} <span className="text-rose-500">*</span>
+                  {t('verification.uploadIdDoc', 'Upload ID Document')} <span className="text-slate-400 font-normal normal-case">(Optional)</span>
                 </label>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <label className="cursor-pointer inline-flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors">
@@ -859,7 +851,7 @@ const TeacherVerification = () => {
 
               <div className="sm:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Upload Degree Certificate / Marksheet <span className="text-rose-500">*</span>
+                  Upload Degree Certificate / Marksheet <span className="text-slate-400 font-normal normal-case">(Optional)</span>
                 </label>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <label className="cursor-pointer inline-flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors">
