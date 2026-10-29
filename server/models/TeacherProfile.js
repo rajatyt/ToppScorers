@@ -35,18 +35,18 @@ const teacherProfileSchema = new mongoose.Schema({
     lng: { type: Number, default: null }
   },
   fee: {
-    amount: { type: Number, default: 3000 },
-    period: { type: String, enum: ['hourly', 'monthly', 'per_session'], default: 'monthly' }
+    amount: { type: Number, default: null },
+    period: { type: String, enum: ['hourly', 'monthly', 'per_session', ''], default: '' }
   },
-  teachingMode: { type: String, default: 'home' },
-  availability: { type: String, default: 'Flexible (Morning / Evening)' },
+  teachingMode: { type: String, default: '' },
+  availability: { type: String, default: '' },
 
   // Requirement Details
-  board: { type: String, default: 'ICSE' },
-  preferredTime: { type: String, default: 'After 4' },
-  daysPerWeek: { type: String, default: '6 days a week' },
-  tutorGender: { type: String, default: 'Any' },
-  studentGender: { type: String, default: 'Female' },
+  board: { type: String, default: '' },
+  preferredTime: { type: String, default: '' },
+  daysPerWeek: { type: String, default: '' },
+  tutorGender: { type: String, default: '' },
+  studentGender: { type: String, default: '' },
   rating: { type: Number, default: 4.8 },
   approvalStatus: { 
     type: String, 

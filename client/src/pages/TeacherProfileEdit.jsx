@@ -42,9 +42,9 @@ const TeacherProfileEdit = () => {
     bio: '',
     subjects: '',
     exams: '',
-    teachingMode: 'home',
-    feeAmount: 3000,
-    feePeriod: 'monthly',
+    teachingMode: '',
+    feeAmount: '',
+    feePeriod: '',
     availability: 'Flexible (Morning / Evening)',
     area: '',
     city: DISTRICTS[0] || 'Prayagraj',
@@ -52,11 +52,11 @@ const TeacherProfileEdit = () => {
     pincode: '',
 
     // Requirement Details
-    board: 'ICSE',
-    preferredTime: 'After 4',
-    daysPerWeek: '6 days a week',
-    tutorGender: 'Any',
-    studentGender: 'Female',
+    board: '',
+    preferredTime: '',
+    daysPerWeek: '',
+    tutorGender: '',
+    studentGender: '',
 
     // Qualifications & Credentials
     highestDegree: '',
@@ -103,9 +103,9 @@ const TeacherProfileEdit = () => {
           bio: p.bio || '',
           subjects: Array.isArray(p.subjects) ? p.subjects.join(', ') : '',
           exams: Array.isArray(p.exams) ? p.exams.join(', ') : '',
-          teachingMode: p.teachingMode || 'home',
-          feeAmount: p.fee?.amount || 3000,
-          feePeriod: p.fee?.period || 'monthly',
+          teachingMode: p.teachingMode || '',
+          feeAmount: p.fee?.amount !== undefined && p.fee?.amount !== null ? p.fee.amount : '',
+          feePeriod: p.fee?.period || '',
           availability: p.availability || 'Flexible (Morning / Evening)',
           area: activeArea,
           city: activeCity,
@@ -113,11 +113,11 @@ const TeacherProfileEdit = () => {
           pincode: p.location?.pincode || '',
 
           // Requirement Details
-          board: p.board || 'ICSE',
-          preferredTime: p.preferredTime || p.preferredTiming || 'After 4',
-          daysPerWeek: p.daysPerWeek || '6 days a week',
-          tutorGender: p.tutorGender || 'Any',
-          studentGender: p.studentGender || 'Female',
+          board: p.board || '',
+          preferredTime: p.preferredTime || p.preferredTiming || '',
+          daysPerWeek: p.daysPerWeek || '',
+          tutorGender: p.tutorGender || '',
+          studentGender: p.studentGender || '',
 
           // Qualifications
           highestDegree: p.degreeDetails?.highestDegree || '',
@@ -807,6 +807,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-bold"
                     >
+                      <option value="">Select Board</option>
                       <option value="ICSE">ICSE</option>
                       <option value="CBSE">CBSE</option>
                       <option value="UP Board">UP Board</option>
@@ -826,6 +827,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 font-bold uppercase"
                     >
+                      <option value="">Select Tuition Mode</option>
                       <option value="HOME">HOME</option>
                       <option value="ONLINE">ONLINE</option>
                       <option value="BOTH">BOTH (HOME & ONLINE)</option>
@@ -860,6 +862,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     >
+                      <option value="">Select Fee Frequency</option>
                       <option value="monthly">Per Month</option>
                       <option value="hourly">Per Hour</option>
                       <option value="per_session">Per Session</option>
@@ -892,6 +895,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     >
+                      <option value="">Select Days per Week</option>
                       <option value="6 days a week">6 days a week</option>
                       <option value="5 days a week">5 days a week</option>
                       <option value="4 days a week">4 days a week</option>
@@ -912,6 +916,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     >
+                      <option value="">Select Tutor Gender</option>
                       <option value="Any">Any</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -929,6 +934,7 @@ const TeacherProfileEdit = () => {
                       onChange={handleChange}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                     >
+                      <option value="">Select Student Gender Preference</option>
                       <option value="Female">Female</option>
                       <option value="Male">Male</option>
                       <option value="Any">Any</option>

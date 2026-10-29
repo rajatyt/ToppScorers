@@ -12,6 +12,39 @@ import {
 import { FiChevronRight, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
+const SUBJECT_OPTIONS = [
+  'Mathematics',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Science (Physics, Chemistry, Biology)',
+  'Social Science (History, Civics, Geography)',
+  'English',
+  'Hindi',
+  'Sanskrit',
+  'Computer Science / Coding',
+  'Commerce & Accountancy',
+  'Economics',
+  'Quantitative Aptitude & Reasoning',
+  'All School Subjects (Classes 1–10)',
+  'Other'
+];
+
+const EXAM_OPTIONS = [
+  'CBSE Board Exams',
+  'ICSE / ISC Board Exams',
+  'UP Board Exams',
+  'All State Board Exams',
+  'NEET Medical Entrance',
+  'JEE Main & Advanced',
+  'Foundation & Olympiads (Classes 6–10)',
+  'CUET (UG / PG Entrance)',
+  'NDA & Defence Exams',
+  'SSC, Banking & Govt Exams',
+  'CLAT & Law Entrance',
+  'Other'
+];
+
 const TeacherVerification = () => {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useContext(AuthContext);
@@ -27,27 +60,33 @@ const TeacherVerification = () => {
   const [submittedAt, setSubmittedAt] = useState(null);
   const [verifiedAt, setVerifiedAt] = useState(null);
 
+  // Dropdown & manual option states for Subjects and Exams
+  const [subjectOption, setSubjectOption] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
+  const [examOption, setExamOption] = useState('');
+  const [customExam, setCustomExam] = useState('');
+
   // Form Fields - Compulsory Tutoring Specialization, Location, Identity, and Degree
   const [formData, setFormData] = useState({
     verificationPhone: '',
     preferredCallingTime: 'Anytime',
 
-    // Tutoring Specialization & Preferences (Compulsory)
-    subjects: 'Math',
-    exams: 'NEET',
-    board: 'ICSE',
-    teachingMode: 'HOME',
-    feeAmount: 3000,
-    feePeriod: 'monthly',
-    preferredTime: 'After 4',
-    daysPerWeek: '6 days a week',
-    tutorGender: 'Any',
-    studentGender: 'Female',
+    // Tutoring Specialization & Preferences (Compulsory) - Initially Unfilled
+    subjects: '',
+    exams: '',
+    board: '',
+    teachingMode: '',
+    feeAmount: '',
+    feePeriod: '',
+    preferredTime: '',
+    daysPerWeek: '',
+    tutorGender: '',
+    studentGender: '',
 
-    // Location & Coverage (Prayagraj) (Compulsory)
+    // Location & Coverage (Prayagraj) (Compulsory) - Initially Unfilled
     city: DISTRICTS[0] || 'Prayagraj',
-    area: 'Daraganj',
-    pincode: '211001',
+    area: '',
+    pincode: '',
 
     // Identity Verification (Compulsory)
     idType: 'aadhaar',
@@ -91,30 +130,60 @@ const TeacherVerification = () => {
         setSubmittedAt(data.verificationSubmittedAt);
         setVerifiedAt(data.verifiedAt);
 
+        const loadedSubject = Array.isArray(data.subjects) && data.subjects.length > 0 
+          ? data.subjects.join(', ') 
+          : (typeof data.subjects === 'string' && data.subjects ? data.subjects : '');
+
+        const loadedExam = Array.isArray(data.exams) && data.exams.length > 0 
+          ? data.exams.join(', ') 
+          : (typeof data.exams === 'string' && data.exams ? data.exams : '');
+
+        if (loadedSubject) {
+          if (SUBJECT_OPTIONS.includes(loadedSubject)) {
+            setSubjectOption(loadedSubject);
+            setCustomSubject('');
+          } else {
+            setSubjectOption('Other');
+            setCustomSubject(loadedSubject);
+          }
+        } else {
+          setSubjectOption('');
+          setCustomSubject('');
+        }
+
+        if (loadedExam) {
+          if (EXAM_OPTIONS.includes(loadedExam)) {
+            setExamOption(loadedExam);
+            setCustomExam('');
+          } else {
+            setExamOption('Other');
+            setCustomExam(loadedExam);
+          }
+        } else {
+          setExamOption('');
+          setCustomExam('');
+        }
+
         setFormData({
           verificationPhone: data.verificationPhone || user?.phone || '',
           preferredCallingTime: data.preferredCallingTime || 'Anytime',
 
-          // Tutoring Specialization & Preferences
-          subjects: Array.isArray(data.subjects) && data.subjects.length > 0 
-            ? data.subjects.join(', ') 
-            : (typeof data.subjects === 'string' && data.subjects ? data.subjects : 'Math'),
-          exams: Array.isArray(data.exams) && data.exams.length > 0 
-            ? data.exams.join(', ') 
-            : (typeof data.exams === 'string' && data.exams ? data.exams : 'NEET'),
-          board: data.board || 'ICSE',
-          teachingMode: (data.teachingMode || 'HOME').toUpperCase(),
-          feeAmount: data.feeAmount ?? 3000,
-          feePeriod: data.feePeriod || 'monthly',
-          preferredTime: data.preferredTime || 'After 4',
-          daysPerWeek: data.daysPerWeek || '6 days a week',
-          tutorGender: data.tutorGender || 'Any',
-          studentGender: data.studentGender || 'Female',
+          // Tutoring Specialization & Preferences - No fake hardcoded defaults
+          subjects: loadedSubject,
+          exams: loadedExam,
+          board: data.board || '',
+          teachingMode: data.teachingMode ? data.teachingMode.toUpperCase() : '',
+          feeAmount: data.feeAmount !== undefined && data.feeAmount !== null && data.feeAmount !== '' ? data.feeAmount : '',
+          feePeriod: data.feePeriod || '',
+          preferredTime: data.preferredTime || '',
+          daysPerWeek: data.daysPerWeek || '',
+          tutorGender: data.tutorGender || '',
+          studentGender: data.studentGender || '',
 
           // Location & Coverage
           city: data.city || DISTRICTS[0] || 'Prayagraj',
-          area: data.area || 'Daraganj',
-          pincode: data.pincode || '211001',
+          area: data.area || '',
+          pincode: data.pincode || '',
 
           // Identity
           idType: data.govtId?.idType || 'aadhaar',
@@ -145,6 +214,38 @@ const TeacherVerification = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSubjectSelect = (e) => {
+    const val = e.target.value;
+    setSubjectOption(val);
+    if (val === 'Other') {
+      setFormData(prev => ({ ...prev, subjects: customSubject }));
+    } else {
+      setFormData(prev => ({ ...prev, subjects: val }));
+    }
+  };
+
+  const handleCustomSubjectChange = (e) => {
+    const val = e.target.value;
+    setCustomSubject(val);
+    setFormData(prev => ({ ...prev, subjects: val }));
+  };
+
+  const handleExamSelect = (e) => {
+    const val = e.target.value;
+    setExamOption(val);
+    if (val === 'Other') {
+      setFormData(prev => ({ ...prev, exams: customExam }));
+    } else {
+      setFormData(prev => ({ ...prev, exams: val }));
+    }
+  };
+
+  const handleCustomExamChange = (e) => {
+    const val = e.target.value;
+    setCustomExam(val);
+    setFormData(prev => ({ ...prev, exams: val }));
+  };
+
   const handleFileChange = (e, fileKey) => {
     if (e.target.files && e.target.files[0]) {
       setFiles(prev => ({ ...prev, [fileKey]: e.target.files[0] }));
@@ -154,25 +255,65 @@ const TeacherVerification = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Compulsory field validations
+    // Compulsory field validations with detailed error messages
     if (!formData.verificationPhone?.trim()) {
       toast.error('Verification mobile phone number is required');
       return;
     }
     if (!formData.subjects?.trim()) {
-      toast.error('Subjects Taught is required');
+      toast.error('Please select or specify Subjects Taught');
       return;
     }
     if (!formData.exams?.trim()) {
-      toast.error('Target Exams Specialized is required');
+      toast.error('Please select or specify Exams Specialized');
       return;
     }
-    if (!formData.area) {
+    if (!formData.board?.trim()) {
+      toast.error('Please select Board (e.g. CBSE, ICSE, UP Board)');
+      return;
+    }
+    if (!formData.teachingMode?.trim()) {
+      toast.error('Please select Tuition Mode (e.g. HOME, ONLINE, BOTH)');
+      return;
+    }
+    if (formData.feeAmount === '' || formData.feeAmount === null || formData.feeAmount === undefined || isNaN(Number(formData.feeAmount)) || Number(formData.feeAmount) <= 0) {
+      toast.error('Please enter a valid Budget / Rate amount (e.g. 3000)');
+      return;
+    }
+    if (!formData.feePeriod?.trim()) {
+      toast.error('Please select Fee Frequency (e.g. Per Month, Per Hour)');
+      return;
+    }
+    if (!formData.preferredTime?.trim()) {
+      toast.error('Please enter your Preferred Teaching Time (e.g. After 4 PM or Evening)');
+      return;
+    }
+    if (!formData.daysPerWeek?.trim()) {
+      toast.error('Please select Days per Week (e.g. 6 days a week)');
+      return;
+    }
+    if (!formData.tutorGender?.trim()) {
+      toast.error('Please select Tutor Gender preference');
+      return;
+    }
+    if (!formData.studentGender?.trim()) {
+      toast.error('Please select Student Gender preference');
+      return;
+    }
+    if (!formData.city?.trim()) {
+      toast.error('Please select District');
+      return;
+    }
+    if (!formData.area?.trim()) {
       toast.error('Please select your Area / Locality in Prayagraj');
       return;
     }
-    if (!formData.pincode?.trim()) {
-      toast.error('Pincode is required');
+    if (!formData.pincode?.trim() || !/^\d{6}$/.test(formData.pincode.trim())) {
+      toast.error('Please enter a valid 6-digit Pincode (e.g. 211001)');
+      return;
+    }
+    if (!formData.idType?.trim()) {
+      toast.error('Please select Government ID Type');
       return;
     }
     if (!formData.idNumber?.trim()) {
@@ -428,35 +569,61 @@ const TeacherVerification = () => {
               {/* Subjects */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Subjects Taught (comma separated) <span className="text-rose-500">*</span>
+                  Subjects Taught <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="subjects"
-                  required
-                  value={formData.subjects}
-                  onChange={handleChange}
-                  placeholder="Comma-separated (e.g. Physics, Chemistry, Mathematics)"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Comma-separated (e.g. Physics, Chemistry, Mathematics)</p>
+                <select
+                  value={subjectOption}
+                  onChange={handleSubjectSelect}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                >
+                  <option value="">Select Subject</option>
+                  {SUBJECT_OPTIONS.map((sub) => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+
+                {subjectOption === 'Other' && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={customSubject}
+                      onChange={handleCustomSubjectChange}
+                      placeholder="Type your subject(s) manually (e.g. Psychology, French)"
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-xs"
+                    />
+                    <p className="text-[10px] text-amber-700 mt-1">Specify custom subject name(s) above</p>
+                  </div>
+                )}
               </div>
 
               {/* Target Exams */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Exams Specialized (comma separated) <span className="text-rose-500">*</span>
+                  Exams Specialized <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="exams"
-                  required
-                  value={formData.exams}
-                  onChange={handleChange}
-                  placeholder="Comma-separated target entrance/board exams"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Comma-separated target entrance/board exams</p>
+                <select
+                  value={examOption}
+                  onChange={handleExamSelect}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                >
+                  <option value="">Select Exam Specialization</option>
+                  {EXAM_OPTIONS.map((ex) => (
+                    <option key={ex} value={ex}>{ex}</option>
+                  ))}
+                </select>
+
+                {examOption === 'Other' && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={customExam}
+                      onChange={handleCustomExamChange}
+                      placeholder="Type exam specialization manually (e.g. GRE, SAT, Olympiad)"
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-xs"
+                    />
+                    <p className="text-[10px] text-amber-700 mt-1">Specify custom exam name(s) above</p>
+                  </div>
+                )}
               </div>
 
               {/* Board */}
@@ -471,11 +638,13 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
-                  <option value="ICSE">ICSE</option>
+                  <option value="">Select Board</option>
                   <option value="CBSE">CBSE</option>
+                  <option value="ICSE">ICSE</option>
                   <option value="UP Board">UP Board</option>
                   <option value="State Board">State Board</option>
                   <option value="All Boards">All Boards</option>
+                  <option value="IB / IGCSE">IB / IGCSE</option>
                 </select>
               </div>
 
@@ -491,6 +660,7 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 uppercase"
                 >
+                  <option value="">Select Tuition Mode</option>
                   <option value="HOME">HOME</option>
                   <option value="ONLINE">ONLINE</option>
                   <option value="BOTH">BOTH (HOME & ONLINE)</option>
@@ -510,7 +680,7 @@ const TeacherVerification = () => {
                   required
                   value={formData.feeAmount}
                   onChange={handleChange}
-                  placeholder="3000"
+                  placeholder="e.g. 3000"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 />
               </div>
@@ -527,6 +697,7 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
+                  <option value="">Select Fee Frequency</option>
                   <option value="monthly">Per Month</option>
                   <option value="hourly">Per Hour</option>
                   <option value="per_session">Per Session</option>
@@ -544,7 +715,7 @@ const TeacherVerification = () => {
                   required
                   value={formData.preferredTime}
                   onChange={handleChange}
-                  placeholder="After 4"
+                  placeholder="e.g. After 4 PM or Evening"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 />
               </div>
@@ -561,6 +732,7 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
+                  <option value="">Select Days per Week</option>
                   <option value="6 days a week">6 days a week</option>
                   <option value="5 days a week">5 days a week</option>
                   <option value="4 days a week">4 days a week</option>
@@ -582,9 +754,10 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
-                  <option value="Any">Any</option>
+                  <option value="">Select Tutor Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
+                  <option value="Any">Any</option>
                 </select>
               </div>
 
@@ -600,9 +773,10 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
+                  <option value="">Select Student Gender Preference</option>
+                  <option value="Any">Any</option>
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
-                  <option value="Any">Any</option>
                 </select>
               </div>
             </div>
@@ -642,11 +816,10 @@ const TeacherVerification = () => {
                   value={formData.city}
                   onChange={(e) => {
                     const newCity = e.target.value;
-                    const defaultArea = (DISTRICT_AREAS[newCity] && DISTRICT_AREAS[newCity][0]) || '';
                     setFormData(prev => ({
                       ...prev,
                       city: newCity,
-                      area: defaultArea
+                      area: ''
                     }));
                   }}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
@@ -670,7 +843,7 @@ const TeacherVerification = () => {
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
-                  <option value="">Select Locality...</option>
+                  <option value="">Select Area / Locality...</option>
                   {availableAreas.map((loc) => (
                     <option key={loc} value={loc}>{loc}</option>
                   ))}
@@ -686,6 +859,7 @@ const TeacherVerification = () => {
                   type="text"
                   name="pincode"
                   required
+                  maxLength={6}
                   value={formData.pincode}
                   onChange={handleChange}
                   placeholder="e.g. 211001"
