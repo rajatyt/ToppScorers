@@ -60,12 +60,6 @@ const TeacherVerification = () => {
   const [submittedAt, setSubmittedAt] = useState(null);
   const [verifiedAt, setVerifiedAt] = useState(null);
 
-  // Dropdown & manual option states for Subjects and Exams
-  const [subjectOption, setSubjectOption] = useState('');
-  const [customSubject, setCustomSubject] = useState('');
-  const [examOption, setExamOption] = useState('');
-  const [customExam, setCustomExam] = useState('');
-
   // Form Fields - Compulsory Tutoring Specialization, Location, Identity, and Degree
   const [formData, setFormData] = useState({
     verificationPhone: '',
@@ -130,60 +124,65 @@ const TeacherVerification = () => {
         setSubmittedAt(data.verificationSubmittedAt);
         setVerifiedAt(data.verifiedAt);
 
-        const loadedSubject = Array.isArray(data.subjects) && data.subjects.length > 0 
-          ? data.subjects.join(', ') 
-          : (typeof data.subjects === 'string' && data.subjects ? data.subjects : '');
+        // Only prefill specialization and location if user has actively submitted verification before
+        const isSubmitted = data.verificationStatus !== 'unverified' && !!data.verificationSubmittedAt;
 
-        const loadedExam = Array.isArray(data.exams) && data.exams.length > 0 
-          ? data.exams.join(', ') 
-          : (typeof data.exams === 'string' && data.exams ? data.exams : '');
+        let loadedSubject = '';
+        let loadedExam = '';
+        let loadedBoard = '';
+        let loadedTeachingMode = '';
+        let loadedFeeAmount = '';
+        let loadedFeePeriod = '';
+        let loadedPreferredTime = '';
+        let loadedDaysPerWeek = '';
+        let loadedTutorGender = '';
+        let loadedStudentGender = '';
+        let loadedArea = '';
+        let loadedPincode = '';
 
-        if (loadedSubject) {
-          if (SUBJECT_OPTIONS.includes(loadedSubject)) {
-            setSubjectOption(loadedSubject);
-            setCustomSubject('');
-          } else {
-            setSubjectOption('Other');
-            setCustomSubject(loadedSubject);
-          }
-        } else {
-          setSubjectOption('');
-          setCustomSubject('');
-        }
+        if (isSubmitted) {
+          loadedSubject = Array.isArray(data.subjects) && data.subjects.length > 0 
+            ? data.subjects[0] || data.subjects.join(', ') 
+            : (typeof data.subjects === 'string' ? data.subjects : '');
+          if (loadedSubject === 'Math') loadedSubject = 'Mathematics';
 
-        if (loadedExam) {
-          if (EXAM_OPTIONS.includes(loadedExam)) {
-            setExamOption(loadedExam);
-            setCustomExam('');
-          } else {
-            setExamOption('Other');
-            setCustomExam(loadedExam);
-          }
-        } else {
-          setExamOption('');
-          setCustomExam('');
+          loadedExam = Array.isArray(data.exams) && data.exams.length > 0 
+            ? data.exams[0] || data.exams.join(', ') 
+            : (typeof data.exams === 'string' ? data.exams : '');
+          if (loadedExam === 'NEET') loadedExam = 'NEET Medical Entrance';
+
+          loadedBoard = data.board || '';
+          loadedTeachingMode = data.teachingMode ? data.teachingMode.toUpperCase() : '';
+          loadedFeeAmount = data.feeAmount !== undefined && data.feeAmount !== null && data.feeAmount !== '' ? data.feeAmount : '';
+          loadedFeePeriod = data.feePeriod || '';
+          loadedPreferredTime = data.preferredTime || '';
+          loadedDaysPerWeek = data.daysPerWeek || '';
+          loadedTutorGender = data.tutorGender || '';
+          loadedStudentGender = data.studentGender || '';
+          loadedArea = data.area || '';
+          loadedPincode = (data.pincode === '211001' && data.verificationStatus === 'unverified') ? '' : (data.pincode || '');
         }
 
         setFormData({
           verificationPhone: data.verificationPhone || user?.phone || '',
           preferredCallingTime: data.preferredCallingTime || 'Anytime',
 
-          // Tutoring Specialization & Preferences - No fake hardcoded defaults
+          // Tutoring Specialization & Preferences - Initially Unfilled
           subjects: loadedSubject,
           exams: loadedExam,
-          board: data.board || '',
-          teachingMode: data.teachingMode ? data.teachingMode.toUpperCase() : '',
-          feeAmount: data.feeAmount !== undefined && data.feeAmount !== null && data.feeAmount !== '' ? data.feeAmount : '',
-          feePeriod: data.feePeriod || '',
-          preferredTime: data.preferredTime || '',
-          daysPerWeek: data.daysPerWeek || '',
-          tutorGender: data.tutorGender || '',
-          studentGender: data.studentGender || '',
+          board: loadedBoard,
+          teachingMode: loadedTeachingMode,
+          feeAmount: loadedFeeAmount,
+          feePeriod: loadedFeePeriod,
+          preferredTime: loadedPreferredTime,
+          daysPerWeek: loadedDaysPerWeek,
+          tutorGender: loadedTutorGender,
+          studentGender: loadedStudentGender,
 
-          // Location & Coverage
+          // Location & Coverage - Initially Unfilled
           city: data.city || DISTRICTS[0] || 'Prayagraj',
-          area: data.area || '',
-          pincode: data.pincode || '',
+          area: loadedArea,
+          pincode: loadedPincode,
 
           // Identity
           idType: data.govtId?.idType || 'aadhaar',
@@ -212,38 +211,6 @@ const TeacherVerification = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubjectSelect = (e) => {
-    const val = e.target.value;
-    setSubjectOption(val);
-    if (val === 'Other') {
-      setFormData(prev => ({ ...prev, subjects: customSubject }));
-    } else {
-      setFormData(prev => ({ ...prev, subjects: val }));
-    }
-  };
-
-  const handleCustomSubjectChange = (e) => {
-    const val = e.target.value;
-    setCustomSubject(val);
-    setFormData(prev => ({ ...prev, subjects: val }));
-  };
-
-  const handleExamSelect = (e) => {
-    const val = e.target.value;
-    setExamOption(val);
-    if (val === 'Other') {
-      setFormData(prev => ({ ...prev, exams: customExam }));
-    } else {
-      setFormData(prev => ({ ...prev, exams: val }));
-    }
-  };
-
-  const handleCustomExamChange = (e) => {
-    const val = e.target.value;
-    setCustomExam(val);
-    setFormData(prev => ({ ...prev, exams: val }));
   };
 
   const handleFileChange = (e, fileKey) => {
@@ -572,8 +539,10 @@ const TeacherVerification = () => {
                   Subjects Taught <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={subjectOption}
-                  onChange={handleSubjectSelect}
+                  name="subjects"
+                  required
+                  value={formData.subjects}
+                  onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
                   <option value="">Select Subject</option>
@@ -581,19 +550,6 @@ const TeacherVerification = () => {
                     <option key={sub} value={sub}>{sub}</option>
                   ))}
                 </select>
-
-                {subjectOption === 'Other' && (
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      value={customSubject}
-                      onChange={handleCustomSubjectChange}
-                      placeholder="Type your subject(s) manually (e.g. Psychology, French)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-xs"
-                    />
-                    <p className="text-[10px] text-amber-700 mt-1">Specify custom subject name(s) above</p>
-                  </div>
-                )}
               </div>
 
               {/* Target Exams */}
@@ -602,8 +558,10 @@ const TeacherVerification = () => {
                   Exams Specialized <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={examOption}
-                  onChange={handleExamSelect}
+                  name="exams"
+                  required
+                  value={formData.exams}
+                  onChange={handleChange}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
                 >
                   <option value="">Select Exam Specialization</option>
@@ -611,19 +569,6 @@ const TeacherVerification = () => {
                     <option key={ex} value={ex}>{ex}</option>
                   ))}
                 </select>
-
-                {examOption === 'Other' && (
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      value={customExam}
-                      onChange={handleCustomExamChange}
-                      placeholder="Type exam specialization manually (e.g. GRE, SAT, Olympiad)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-xs"
-                    />
-                    <p className="text-[10px] text-amber-700 mt-1">Specify custom exam name(s) above</p>
-                  </div>
-                )}
               </div>
 
               {/* Board */}

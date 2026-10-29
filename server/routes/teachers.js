@@ -237,6 +237,8 @@ router.get('/verification', authenticate, authorize('teacher'), async (req, res)
       profile = await TeacherProfile.findById(profile._id).populate('userId', 'name email phone avatar');
     }
 
+    const isSubmitted = profile.verificationStatus !== 'unverified' && !!profile.verificationSubmittedAt;
+
     res.json({
       verificationStatus: profile.verificationStatus || 'unverified',
       isVerified: profile.isVerified || false,
@@ -254,19 +256,19 @@ router.get('/verification', authenticate, authorize('teacher'), async (req, res)
       bio: profile.bio || '',
       demoVideoUrl: profile.demoVideoUrl || '',
       experience: profile.experience || 0,
-      subjects: profile.subjects || [],
-      exams: profile.exams || [],
-      board: profile.board || '',
-      teachingMode: profile.teachingMode ? profile.teachingMode.toUpperCase() : '',
-      feeAmount: profile.fee?.amount !== undefined && profile.fee?.amount !== null ? profile.fee.amount : '',
-      feePeriod: profile.fee?.period || '',
-      preferredTime: profile.preferredTime || '',
-      daysPerWeek: profile.daysPerWeek || '',
-      tutorGender: profile.tutorGender || '',
-      studentGender: profile.studentGender || '',
+      subjects: isSubmitted ? (profile.subjects || []) : [],
+      exams: isSubmitted ? (profile.exams || []) : [],
+      board: isSubmitted ? (profile.board || '') : '',
+      teachingMode: isSubmitted && profile.teachingMode ? profile.teachingMode.toUpperCase() : '',
+      feeAmount: isSubmitted && profile.fee?.amount !== undefined && profile.fee?.amount !== null ? profile.fee.amount : '',
+      feePeriod: isSubmitted ? (profile.fee?.period || '') : '',
+      preferredTime: isSubmitted ? (profile.preferredTime || '') : '',
+      daysPerWeek: isSubmitted ? (profile.daysPerWeek || '') : '',
+      tutorGender: isSubmitted ? (profile.tutorGender || '') : '',
+      studentGender: isSubmitted ? (profile.studentGender || '') : '',
       city: profile.location?.city || 'Prayagraj',
-      area: profile.area || '',
-      pincode: profile.location?.pincode || ''
+      area: isSubmitted ? (profile.area || '') : '',
+      pincode: isSubmitted ? (profile.location?.pincode || '') : ''
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -282,6 +284,8 @@ router.get('/me/verification', authenticate, authorize('teacher'), async (req, r
       profile = await TeacherProfile.findById(profile._id).populate('userId', 'name email phone avatar');
     }
 
+    const isSubmitted = profile.verificationStatus !== 'unverified' && !!profile.verificationSubmittedAt;
+
     res.json({
       verificationStatus: profile.verificationStatus || 'unverified',
       isVerified: profile.isVerified || false,
@@ -299,19 +303,19 @@ router.get('/me/verification', authenticate, authorize('teacher'), async (req, r
       bio: profile.bio || '',
       demoVideoUrl: profile.demoVideoUrl || '',
       experience: profile.experience || 0,
-      subjects: profile.subjects || [],
-      exams: profile.exams || [],
-      board: profile.board || '',
-      teachingMode: profile.teachingMode ? profile.teachingMode.toUpperCase() : '',
-      feeAmount: profile.fee?.amount !== undefined && profile.fee?.amount !== null ? profile.fee.amount : '',
-      feePeriod: profile.fee?.period || '',
-      preferredTime: profile.preferredTime || '',
-      daysPerWeek: profile.daysPerWeek || '',
-      tutorGender: profile.tutorGender || '',
-      studentGender: profile.studentGender || '',
+      subjects: isSubmitted ? (profile.subjects || []) : [],
+      exams: isSubmitted ? (profile.exams || []) : [],
+      board: isSubmitted ? (profile.board || '') : '',
+      teachingMode: isSubmitted && profile.teachingMode ? profile.teachingMode.toUpperCase() : '',
+      feeAmount: isSubmitted && profile.fee?.amount !== undefined && profile.fee?.amount !== null ? profile.fee.amount : '',
+      feePeriod: isSubmitted ? (profile.fee?.period || '') : '',
+      preferredTime: isSubmitted ? (profile.preferredTime || '') : '',
+      daysPerWeek: isSubmitted ? (profile.daysPerWeek || '') : '',
+      tutorGender: isSubmitted ? (profile.tutorGender || '') : '',
+      studentGender: isSubmitted ? (profile.studentGender || '') : '',
       city: profile.location?.city || 'Prayagraj',
-      area: profile.area || '',
-      pincode: profile.location?.pincode || ''
+      area: isSubmitted ? (profile.area || '') : '',
+      pincode: isSubmitted ? (profile.location?.pincode || '') : ''
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
