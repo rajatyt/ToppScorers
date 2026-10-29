@@ -57,13 +57,13 @@ const teacherProfileSchema = new mongoose.Schema({
   verificationStatus: {
     type: String,
     enum: ['unverified', 'pending', 'verified', 'rejected'],
-    default: 'pending'
+    default: 'unverified'
   },
   rejectionReason: { type: String, default: '' },
   adminVerificationNotes: { type: String, default: '' },
   verificationSubmittedAt: { type: Date, default: null },
   verifiedAt: { type: Date, default: null },
-  viewedByAdmin: { type: Boolean, default: false },
+  viewedByAdmin: { type: Boolean, default: true },
 
   // Verification & Physical Tuition Coordination Contact
   verificationPhone: { type: String, default: '' },

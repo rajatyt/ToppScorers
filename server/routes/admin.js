@@ -572,11 +572,8 @@ router.get('/verifications', async (req, res) => {
     if (status && status !== 'all') {
       if (status === 'pending') {
         query = {
-          $or: [
-            { verificationStatus: 'pending' },
-            { approvalStatus: 'pending', isVerified: false },
-            { verificationStatus: 'unverified', isVerified: false }
-          ]
+          verificationStatus: 'pending',
+          verificationSubmittedAt: { $ne: null }
         };
       } else if (status === 'verified') {
         query = {
@@ -592,13 +589,21 @@ router.get('/verifications', async (req, res) => {
             { approvalStatus: 'rejected' }
           ]
         };
+      } else if (status === 'unverified') {
+        query = {
+          $or: [
+            { verificationStatus: 'unverified' },
+            { verificationSubmittedAt: null, isVerified: false }
+          ],
+          isVerified: false
+        };
       } else {
         query.verificationStatus = status;
       }
     }
 
     const sortOrder = status === 'pending' 
-      ? { createdAt: -1, verificationSubmittedAt: -1 }
+      ? { verificationSubmittedAt: -1, createdAt: -1 }
       : { updatedAt: -1 };
 
     let teachers = await TeacherProfile.find(query)
@@ -615,13 +620,10 @@ router.get('/verifications', async (req, res) => {
       );
     }
 
-    // Return counts along with list
+    // Return counts along with list (only teachers who actually submitted verification details appear in pending)
     const pendingCount = await TeacherProfile.countDocuments({
-      $or: [
-        { verificationStatus: 'pending' },
-        { approvalStatus: 'pending', isVerified: false },
-        { verificationStatus: 'unverified', isVerified: false }
-      ]
+      verificationStatus: 'pending',
+      verificationSubmittedAt: { $ne: null }
     });
     const verifiedCount = await TeacherProfile.countDocuments({
       $or: [
@@ -636,8 +638,10 @@ router.get('/verifications', async (req, res) => {
       ]
     });
     const unverifiedCount = await TeacherProfile.countDocuments({
-      verificationStatus: 'unverified',
-      approvalStatus: { $ne: 'pending' },
+      $or: [
+        { verificationStatus: 'unverified' },
+        { verificationSubmittedAt: null, isVerified: false }
+      ],
       isVerified: false
     });
 
@@ -1187,11 +1191,8 @@ router.get('/unread-counts', async (req, res) => {
       ConnectionRequest.countDocuments({ viewedByAdmin: false }),
       TeacherProfile.countDocuments({
         viewedByAdmin: false,
-        $or: [
-          { verificationStatus: 'pending' },
-          { approvalStatus: 'pending', isVerified: false },
-          { verificationStatus: 'unverified', isVerified: false }
-        ]
+        verificationStatus: 'pending',
+        verificationSubmittedAt: { $ne: null }
       }),
       StudentProfile.countDocuments({
         viewedByAdmin: false,

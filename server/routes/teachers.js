@@ -436,9 +436,10 @@ router.post(
         if (area) profile.area = area;
       }
 
-      // Set status to pending review
+      // Set status to pending review only when teacher submits verification details
       profile.verificationStatus = 'pending';
       profile.verificationSubmittedAt = new Date();
+      profile.viewedByAdmin = false; // Alert admin queue that verification has been submitted
       profile.rejectionReason = ''; // Clear previous rejection reason
 
       await profile.save();
@@ -462,20 +463,17 @@ router.post('/verification/skip', authenticate, authorize('teacher'), async (req
       profile = await TeacherProfile.create({ userId: req.user._id });
     }
 
-    // Skipping the prompt allows user to browse without blocking, but leaves the account pending admin review
+    // Skipping prompt allows user to browse without blocking; profile remains unverified until submitted
     if (profile.verificationStatus !== 'verified') {
-      if (!profile.verificationStatus || profile.verificationStatus === 'unverified') {
-        profile.verificationStatus = 'pending';
-      }
-      if (!profile.approvalStatus) {
-        profile.approvalStatus = 'pending';
+      if (!profile.verificationStatus) {
+        profile.verificationStatus = 'unverified';
       }
       profile.isVerified = false;
       await profile.save();
     }
 
     res.json({
-      message: 'Verification prompt skipped for this session. Your profile remains pending verification.',
+      message: 'Verification prompt skipped for this session. Complete your verification anytime to unlock student outreach.',
       verificationStatus: profile.verificationStatus,
       approvalStatus: profile.approvalStatus
     });

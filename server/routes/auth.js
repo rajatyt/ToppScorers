@@ -141,8 +141,10 @@ router.post('/signup', signupLimiter, async (req, res) => {
         location: { city: initialCity },
         area: initialArea,
         approvalStatus: 'pending',
-        verificationStatus: 'pending',
-        isVerified: false
+        verificationStatus: 'unverified',
+        isVerified: false,
+        verificationSubmittedAt: null,
+        viewedByAdmin: true
       });
     } else {
       const jobId = await generateStudentJobId();
@@ -502,8 +504,10 @@ router.post('/google', async (req, res) => {
         location: initialLocation,
         area: initialArea,
         approvalStatus: 'pending',
-        verificationStatus: 'pending',
-        isVerified: false
+        verificationStatus: 'unverified',
+        isVerified: false,
+        verificationSubmittedAt: null,
+        viewedByAdmin: true
       });
     } else {
       const jobId = await generateStudentJobId();
@@ -842,7 +846,7 @@ router.get('/dashboard-metrics', authenticate, async (req, res) => {
         acceptedCount,
         profileViewsCount,
         isVerified: profile?.isVerified ?? false,
-        verificationStatus: profile?.verificationStatus || (profile?.isVerified ? 'verified' : 'pending'),
+        verificationStatus: profile?.verificationStatus || (profile?.isVerified ? 'verified' : 'unverified'),
         rejectionReason: profile?.rejectionReason || '',
         approvalStatus: profile?.approvalStatus || 'pending'
       };
