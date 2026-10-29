@@ -28,7 +28,7 @@ const Footer = () => {
               </div>
             </Link>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              {t('footer.description', 'Connecting India’s most dedicated teachers, coaching faculties, and home tuition specialists directly with motivated students and parents.')}
+              {t('footer.description', 'Connecting Prayagraj’s most dedicated tutors, coaching faculties, and home tuition specialists directly with motivated students and parents.')}
             </p>
             <div className="flex gap-2.5 pt-2">
               <a 

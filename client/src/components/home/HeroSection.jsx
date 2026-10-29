@@ -141,7 +141,7 @@ const HeroSection = () => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
             </span>
             <FaGraduationCap className="text-sm text-amber-400" />
-            <span>{t('hero.badge', "India's #1 Platform for Students & Educators")}</span>
+            <span>{t('hero.badge', "Prayagraj's #1 Platform for Students & Educators")}</span>
           </div>
 
           {/* Interactive Role Switcher for Guests */}
@@ -204,7 +204,7 @@ const HeroSection = () => {
             ) : activeRole === 'teacher' ? (
               t('hero.teacherSubtitle', "Connect directly with students and coaching institutes seeking verified educators. Zero commissions, direct parent requests, and verified badges.")
             ) : (
-              t('hero.studentSubtitle', "Find background-verified educators for 1-on-1 home tuitions, online coaching batches, and school board prep across India.")
+              t('hero.studentSubtitle', "Find background-verified educators for 1-on-1 home tuitions, online coaching batches, and school board prep across Prayagraj.")
             )}
           </p>
 
@@ -396,42 +396,55 @@ const HeroSection = () => {
 
                   {isAuthenticated ? (
                     <div className="space-y-2 pt-1">
-                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                      <Link 
+                        to={isUserTeacher ? "/dashboard#incoming" : "/dashboard#outgoing"}
+                        className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-amber-400/40 flex items-center justify-between transition-all duration-200 group cursor-pointer block"
+                      >
                         <div className="flex items-center space-x-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
                             ⏳
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">Pending Requests</div>
+                            <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors flex items-center">
+                              Pending Requests <FiArrowRight className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" size={10} />
+                            </div>
                             <div className="text-[10px] text-slate-400">Awaiting coordination / reply</div>
                           </div>
                         </div>
-                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
                           {dashboardMetrics?.incomingCount ?? dashboardMetrics?.sentCount ?? 0}
                         </span>
-                      </div>
+                      </Link>
 
-                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
+                      <Link 
+                        to="/dashboard#accepted"
+                        className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 hover:border-emerald-400/40 flex items-center justify-between transition-all duration-200 group cursor-pointer block"
+                      >
                         <div className="flex items-center space-x-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
                             <FaCheckCircle className="text-emerald-400" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">Connected Tuitions</div>
+                            <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors flex items-center">
+                              Connected Tuitions <FiArrowRight className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" size={10} />
+                            </div>
                             <div className="text-[10px] text-slate-400">Active tuition connects</div>
                           </div>
                         </div>
-                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
                           {dashboardMetrics?.acceptedCount ?? 0}
                         </span>
-                      </div>
+                      </Link>
 
-                      <div className="p-2.5 bg-gradient-to-r from-amber-500/10 to-transparent rounded-xl border border-amber-500/20 flex items-center justify-between text-xs">
-                        <span className="text-slate-300 font-medium">Profile Approval</span>
-                        <span className="font-bold text-amber-300 capitalize">
-                          {dashboardMetrics?.approvalStatus || 'Approved'}
+                      <Link 
+                        to="/profile?tab=general"
+                        className="p-2.5 bg-gradient-to-r from-amber-500/10 to-transparent hover:bg-amber-500/20 rounded-xl border border-amber-500/20 flex items-center justify-between text-xs transition-all group cursor-pointer block"
+                      >
+                        <span className="text-slate-300 font-medium group-hover:text-white transition-colors">Profile Approval</span>
+                        <span className="font-bold text-amber-300 capitalize flex items-center">
+                          {dashboardMetrics?.approvalStatus || 'Approved'} <FiArrowRight className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" size={10} />
                         </span>
-                      </div>
+                      </Link>
                     </div>
                   ) : (
                     <>
@@ -571,7 +584,7 @@ const HeroSection = () => {
 
       {/* Stitch Obsidian Elite EdTech: Value Proposition / Trust Architecture Grid */}
       <div className="container mx-auto px-4 sm:px-6 md:px-12 lg:px-20 relative z-10 mt-14 sm:mt-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: 0% Commission */}
           <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/85 backdrop-blur-xl border border-white/10 hover:border-amber-400/35 transition-all duration-300 shadow-2xl flex items-start space-x-3.5 group">
             <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
@@ -602,17 +615,6 @@ const HeroSection = () => {
             <div>
               <h3 className="font-display font-bold text-white text-sm sm:text-base">Free Demo Guarantee</h3>
               <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">1-on-1 trial session. Switch tutors instantly if needed.</p>
-            </div>
-          </div>
-
-          {/* Card 4: 4.9/5 Rating */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/85 backdrop-blur-xl border border-white/10 hover:border-amber-400/35 transition-all duration-300 shadow-2xl flex items-start space-x-3.5 group">
-            <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-              <FaStar className="text-lg" />
-            </div>
-            <div>
-              <h3 className="font-display font-bold text-white text-sm sm:text-base">4.9 / 5 Rating</h3>
-              <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">Over 120,000+ verifiable tutoring hours delivered.</p>
             </div>
           </div>
         </div>

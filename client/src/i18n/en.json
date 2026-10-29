@@ -22,9 +22,9 @@
     "helpAndDoubts": "Help & Doubts"
   },
   "hero": {
-    "badge": "India's #1 Platform for Students & Educators",
+    "badge": "Prayagraj's #1 Platform for Students & Educators",
     "title": "Where Top Tutors Meet Ambitious Students",
-    "subtitle": "India's smartest two-way platform for students seeking top-rated tutors and educators looking for genuine tuition students. Search verified tutors or find student batches near you.",
+    "subtitle": "Prayagraj's smartest two-way platform for students seeking top-rated tutors and educators looking for genuine tuition students. Search verified tutors or find student batches near you.",
     "studentTab": "I'm a Student / Parent",
     "teacherTab": "I'm a Tutor",
     "findTeacher": "Find a Tutor",
@@ -168,7 +168,7 @@
     "heading": "Frequently Asked Questions"
   },
   "footer": {
-    "description": "India's smartest platform connecting tutors with students and coaching institutes.",
+    "description": "Prayagraj's smartest platform connecting tutors with students and coaching institutes.",
     "quickLinks": "Quick Links",
     "forTeachers": "For Tutors",
     "forStudents": "For Students",
@@ -194,7 +194,7 @@
     "signupSuccess": "Account created successfully!",
     "forgotPassword": "Forgot Password?",
     "welcomeTo": "Welcome to",
-    "platformSubtitle": "India's smartest network connecting verified educators and ambitious learners.",
+    "platformSubtitle": "Prayagraj's smartest network connecting verified educators and ambitious learners.",
     "signIn": "Sign In",
     "signInDesc": "Access your student or tutor account, direct contact requests, and dashboard.",
     "continue": "Continue",
@@ -513,7 +513,7 @@
   },
   "welcomeModal": {
     "badge": "Welcome to ToppScorers",
-    "title": "India's Premier Educator & Student Network",
+    "title": "Prayagraj's Premier Educator & Student Network",
     "subtitle": "Whether you are aiming for academic excellence or ready to inspire learners, select your path below to begin.",
     "forStudentsBadge": "Students & Parents",
     "findTutorTitle": "Find My Tutor",

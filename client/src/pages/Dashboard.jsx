@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
@@ -76,17 +76,27 @@ const Dashboard = () => {
     }
   }, [activeTab, isAuthenticated]);
 
+  const location = useLocation();
+
   useEffect(() => {
-    if (window.location.hash) {
-      const hash = window.location.hash.replace('#', '');
-      if (['incoming', 'outgoing', 'accepted'].includes(hash)) {
-        setActiveTab(hash);
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    const hash = (location.hash || window.location.hash || '').replace('#', '');
+    const target = tabParam || hash;
+
+    if (target) {
+      if (['incoming', 'outgoing', 'accepted'].includes(target)) {
+        setActiveTab(target);
+      } else if (target === 'requests' || target === 'pending') {
+        setActiveTab(user?.role === 'teacher' ? 'incoming' : 'outgoing');
+      } else if (target === 'connected' || target === 'connections') {
+        setActiveTab('accepted');
       }
       setTimeout(() => {
         document.getElementById('connections-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
+      }, 200);
     }
-  }, []);
+  }, [location.hash, location.search, user?.role]);
 
   const handleConnectionAction = async (requestId, action) => {
     setActionLoading(requestId);

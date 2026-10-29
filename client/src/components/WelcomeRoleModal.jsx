@@ -88,7 +88,7 @@ const WelcomeRoleModal = () => {
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-            {t('welcomeModal.title', "India's Premier Educator & Student Network")}
+            {t('welcomeModal.title', "Prayagraj's Premier Educator & Student Network")}
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
