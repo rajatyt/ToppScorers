@@ -361,9 +361,14 @@ const FindStudents = () => {
                     Max Student Budget (₹/month)
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={budgetMax}
-                    onChange={(e) => { setBudgetMax(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setBudgetMax(val);
+                      setPage(1);
+                    }}
                     placeholder="e.g. 5000"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-800"
                   />

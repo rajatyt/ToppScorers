@@ -364,9 +364,14 @@ const FindTeachers = () => {
                     Max Fee (₹/month)
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={feeMax}
-                    onChange={(e) => { setFeeMax(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setFeeMax(val);
+                      setPage(1);
+                    }}
                     placeholder="e.g. 3000"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-800"
                   />
