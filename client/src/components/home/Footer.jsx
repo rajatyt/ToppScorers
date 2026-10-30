@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FaLinkedin, FaTwitter, FaInstagram, FaYoutube, FaWhatsapp } from 'react-icons/fa';
+import { AuthContext } from '../../context/AuthContext';
 
 const Footer = () => {
   const { t } = useTranslation();
+  const { isAuthenticated } = useContext(AuthContext);
 
   return (
     <footer className="bg-[#070b14] text-slate-400 pt-16 pb-12 border-t border-white/10 relative overflow-hidden">
@@ -83,11 +85,19 @@ const Footer = () => {
                   <span className="text-amber-500/60 text-xs">›</span> Tuition Student Requests
                 </Link>
               </li>
-              <li>
-                <Link to="/auth" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Sign In / Join Free
-                </Link>
-              </li>
+              {!isAuthenticated ? (
+                <li>
+                  <Link to="/auth" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                    <span className="text-amber-500/60 text-xs">›</span> Sign In / Join Free
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <Link to="/dashboard" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                    <span className="text-amber-500/60 text-xs">›</span> Dashboard
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -97,21 +107,25 @@ const Footer = () => {
               {t('footer.forTeachers', 'For Tutors')}
             </h4>
             <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-              <li>
-                <Link to="/signup?role=teacher" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Create Tutor Profile
-                </Link>
-              </li>
+              {!isAuthenticated && (
+                <li>
+                  <Link to="/signup?role=teacher" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                    <span className="text-amber-500/60 text-xs">›</span> Create Tutor Profile
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/students" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
                   <span className="text-amber-500/60 text-xs">›</span> Browse Student Requests
                 </Link>
               </li>
-              <li>
-                <Link to="/login" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                  <span className="text-amber-500/60 text-xs">›</span> Tutor Login
-                </Link>
-              </li>
+              {!isAuthenticated && (
+                <li>
+                  <Link to="/login" className="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                    <span className="text-amber-500/60 text-xs">›</span> Tutor Login
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

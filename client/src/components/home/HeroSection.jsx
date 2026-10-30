@@ -221,8 +221,8 @@ const HeroSection = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   activeRole === 'teacher'
-                    ? "Search students by subject, class, or city (e.g. Class 12, Physics, Delhi)..."
-                    : "Search teachers by subject, exam, or city (e.g. CBSE Maths, NEET, Bangalore)..."
+                    ? "Search students by subject, class, or Area / Locality (e.g. Class 12, Physics, Daraganj)..."
+                    : "Search teachers by subject, exam, or Area / Locality (e.g. CBSE Maths, NEET, Civil Lines)..."
                 }
                 className="w-full bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm font-medium focus:outline-none py-2.5"
               />
@@ -388,10 +388,12 @@ const HeroSection = () => {
                 >
                   <div className="flex items-center justify-between text-[11px] text-amber-400 font-semibold px-1">
                     <span>{isAuthenticated ? 'My Dashboard Activity' : t('hero.recentInquiries')}</span>
-                    <span className="flex items-center space-x-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>{isAuthenticated ? 'Dashboard Live' : t('hero.liveFeed')}</span>
-                    </span>
+                    {!isAuthenticated && (
+                      <span className="flex items-center space-x-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>{t('hero.liveFeed')}</span>
+                      </span>
+                    )}
                   </div>
 
                   {isAuthenticated ? (

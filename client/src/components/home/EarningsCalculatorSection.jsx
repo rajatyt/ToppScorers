@@ -60,7 +60,7 @@ const EarningsCalculatorSection = () => {
 
         {/* Bottom CTA for educators */}
         <motion.div
-          className="mt-10 text-center flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="mt-10 text-center flex items-center justify-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -72,12 +72,6 @@ const EarningsCalculatorSection = () => {
           >
             <span>{isHi ? 'छात्रों के ट्यूशन अनुरोध देखें' : 'Browse Student Tuition Requests'}</span>
             <HiArrowRight className="text-amber-400 text-lg" />
-          </Link>
-          <Link
-            to="/profile?tab=general"
-            className="inline-flex items-center space-x-2 px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-sm rounded-xl border border-slate-200 shadow-xs transition-colors"
-          >
-            <span>{isHi ? 'अपनी दरें और प्रोफ़ाइल देखें' : 'Update Hourly Rates'}</span>
           </Link>
         </motion.div>
       </div>

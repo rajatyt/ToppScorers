@@ -109,7 +109,7 @@ const TeacherVerification = () => {
       navigate('/login');
       return;
     }
-    if (user?.role !== 'teacher') {
+    if (user?.role !== 'teacher' && user?.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
@@ -279,10 +279,6 @@ const TeacherVerification = () => {
       toast.error('Please select Tutor Gender preference');
       return;
     }
-    if (!formData.studentGender?.trim()) {
-      toast.error('Please select Student Gender preference');
-      return;
-    }
     if (!formData.city?.trim()) {
       toast.error('Please select District');
       return;
@@ -347,12 +343,13 @@ const TeacherVerification = () => {
     setSkipping(true);
     try {
       const res = await api.post('/teachers/verification/skip');
-      toast.success(res.data.message || 'Verification skipped for now.');
-      navigate('/dashboard');
+      toast.success(res.data?.message || 'Verification skipped for now.');
     } catch (err) {
-      toast.error('Failed to skip verification');
+      toast('Verification skipped for this session', { icon: 'ℹ️' });
     } finally {
+      sessionStorage.setItem('teacher_verification_skipped', 'true');
       setSkipping(false);
+      navigate('/dashboard');
     }
   };
 
@@ -719,25 +716,6 @@ const TeacherVerification = () => {
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Any">Any</option>
-                </select>
-              </div>
-
-              {/* Student Gender */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Student Gender <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  name="studentGender"
-                  required
-                  value={formData.studentGender}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
-                >
-                  <option value="">Select Student Gender Preference</option>
-                  <option value="Any">Any</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
                 </select>
               </div>
             </div>

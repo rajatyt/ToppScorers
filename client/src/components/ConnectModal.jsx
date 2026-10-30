@@ -127,7 +127,6 @@ const ConnectModal = ({ isOpen, onClose, targetProfile, onSuccess }) => {
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 text-left space-y-2.5 shadow-2xs">
               <div className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center justify-between">
                 <span>Why Verification is Important:</span>
-                <span className="text-[10px] text-amber-700 font-bold">Prayagraj Standard</span>
               </div>
 
               {!isStudentNotice ? (

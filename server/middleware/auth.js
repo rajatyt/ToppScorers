@@ -14,8 +14,7 @@ export const authenticate = async (req, res, next) => {
                        req.originalUrl?.startsWith('/api/auth/admin') || 
                        req.originalUrl?.startsWith('/api/faqs/all') ||
                        req.headers['x-auth-scope'] === 'admin' ||
-                       Boolean(req.headers['x-admin-token']) ||
-                       Boolean(req.cookies?.adminAccessToken || req.cookies?.adminToken);
+                       Boolean(req.headers['x-admin-token']);
 
   const clearCookiesForScope = (response) => {
     if (isAdminRoute) {
@@ -40,11 +39,14 @@ export const authenticate = async (req, res, next) => {
     } else {
       accessToken = req.cookies?.accessToken || 
                     req.cookies?.token || 
-                    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null) ||
-                    req.cookies?.adminAccessToken ||
-                    req.cookies?.adminToken ||
-                    req.headers['x-admin-token'];
-      refreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'] || req.cookies?.adminRefreshToken;
+                    (req.headers.authorization?.startsWith('Bearer ') && !req.headers['x-admin-token'] ? req.headers.authorization.split(' ')[1] : null);
+      refreshToken = req.cookies?.refreshToken || req.headers['x-refresh-token'];
+
+      // Fallback to admin credentials only if user has no standard tokens
+      if (!accessToken && !refreshToken) {
+        accessToken = req.cookies?.adminAccessToken || req.cookies?.adminToken || req.headers['x-admin-token'];
+        refreshToken = req.cookies?.adminRefreshToken;
+      }
     }
 
     // 1. Try verifying the access token first (15-min life)
@@ -148,9 +150,13 @@ export const optionalAuth = async (req, res, next) => {
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required. Please log in.' });
     }
-    next();
+    // Allow users matching any of the specified roles or admin users
+    if (roles.includes(req.user.role) || req.user.role === 'admin') {
+      return next();
+    }
+    return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
   };
 };
