@@ -6,7 +6,7 @@ import {
   FiRefreshCw, FiAlertCircle, FiUser, FiMapPin, FiExternalLink,
   FiChevronRight, FiCheck, FiX, FiCheckSquare, FiZap
 } from 'react-icons/fi';
-import { FaWhatsapp, FaHandshake, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
+import { FaWhatsapp, FaHandshake, FaUserGraduate, FaChalkboardTeacher, FaTelegramPlane } from 'react-icons/fa';
 import axios from '../../api/axios';
 import toast from 'react-hot-toast';
 import { DISTRICTS } from '../../utils/locationData';
@@ -55,7 +55,20 @@ const ConnectionManager = ({ defaultSection = 'all' }) => {
   
   // Local edit states mapped by connection id
   const [editForms, setEditForms] = useState({});
+  const [testingTelegram, setTestingTelegram] = useState(false);
   const { markAdminSectionViewed } = useContext(NotificationContext);
+
+  const handleSendTelegramTest = async () => {
+    try {
+      setTestingTelegram(true);
+      const res = await axios.post('/admin/telegram/test', { message: 'you first notifi' });
+      toast.success(res.data?.message || 'Telegram test notification delivered!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send Telegram alert');
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
 
   useEffect(() => {
     setActiveSection(defaultSection);
@@ -203,13 +216,22 @@ const ConnectionManager = ({ defaultSection = 'all' }) => {
             Call them directly via phone or WhatsApp, negotiate terms, coordinate tuition, and collect your platform commission.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={fetchConnections}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold border border-slate-600 transition-colors shadow-sm"
+            className="flex items-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold border border-slate-600 transition-colors shadow-sm cursor-pointer"
           >
             <FiRefreshCw className={loading ? 'animate-spin' : ''} />
             <span>Refresh Leads</span>
+          </button>
+          <button
+            onClick={handleSendTelegramTest}
+            disabled={testingTelegram}
+            className="flex items-center space-x-2 px-3.5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl text-xs font-black shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+            title="Send test Telegram alert: you first notifi"
+          >
+            <FaTelegramPlane size={14} className={testingTelegram ? 'animate-bounce' : ''} />
+            <span>{testingTelegram ? 'Sending...' : 'Test Telegram Alert'}</span>
           </button>
         </div>
       </div>

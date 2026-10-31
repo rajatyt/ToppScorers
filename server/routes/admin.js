@@ -14,6 +14,7 @@ import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValid
 import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
 import Query from '../models/Query.js';
 import AdminNotification from '../models/AdminNotification.js';
+import { sendTelegramMessage, notifyTelegramLeadStatusUpdate, TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID } from '../utils/telegramService.js';
 
 const router = express.Router();
 
@@ -1094,6 +1095,12 @@ router.patch('/connections/:id', async (req, res) => {
 
     await request.save();
 
+    // Trigger Telegram alert for Admin on major pipeline status updates
+    if (adminLeadStatus || commissionStatus || commissionReceived !== undefined) {
+      notifyTelegramLeadStatusUpdate(request, { adminLeadStatus, commissionStatus, commissionReceived, adminNotes })
+        .catch(err => console.error('[Telegram] Lead status update error:', err));
+    }
+
     const populated = await ConnectionRequest.findById(request._id)
       .populate('fromUserId', 'name email phone avatar role isActive')
       .populate('toUserId', 'name email phone avatar role isActive')
@@ -1252,6 +1259,83 @@ router.post('/mark-viewed', async (req, res) => {
     }
 
     res.json({ message: `Admin section ${section || 'all'} marked as viewed` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/telegram/status - Check Telegram bot configuration status
+router.get('/telegram/status', async (req, res) => {
+  try {
+    const isConfigured = Boolean(TELEGRAM_BOT_TOKEN && TELEGRAM_ADMIN_CHAT_ID);
+    const maskedToken = TELEGRAM_BOT_TOKEN ? `${TELEGRAM_BOT_TOKEN.substring(0, 10)}...` : 'Not configured';
+    res.json({
+      configured: isConfigured,
+      botUsername: 'ToppScorer_New_Connection_bot',
+      chatId: TELEGRAM_ADMIN_CHAT_ID,
+      tokenMasked: maskedToken
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/admin/telegram/test - Send test Telegram notification
+router.post('/telegram/test', async (req, res) => {
+  try {
+    const { message, title } = req.body || {};
+    const notifTitle = title || message || 'you first notifi';
+    const text = `🎉 <b>${notifTitle}</b>
+
+✅ <b>ToppScorers Admin Telegram Bot is Operational!</b>
+This test notification was triggered from the ToppScorers Admin Portal.
+You will now automatically receive instant alerts whenever a new connection request or lead arrives in <b>All Pipeline Leads</b>.
+
+⏰ <b>Timestamp:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+🔗 <b>Admin Portal:</b> https://toppscorers-1024664791682.asia-south2.run.app/admin/connections`;
+
+    const result = await sendTelegramMessage(text);
+    if (!result.success) {
+      return res.status(500).json({
+        message: 'Failed to send Telegram notification',
+        error: result.error
+      });
+    }
+
+    res.json({
+      message: 'Test notification sent to Telegram successfully!',
+      result
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/admin/telegram/test - Quick browser/curl test endpoint
+router.get('/telegram/test', async (req, res) => {
+  try {
+    const notifTitle = req.query.message || req.query.title || 'you first notifi';
+    const text = `🎉 <b>${notifTitle}</b>
+
+✅ <b>ToppScorers Admin Telegram Bot is Operational!</b>
+This test notification was triggered from the ToppScorers Admin Portal.
+You will now automatically receive instant alerts whenever a new connection request or lead arrives in <b>All Pipeline Leads</b>.
+
+⏰ <b>Timestamp:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+🔗 <b>Admin Portal:</b> https://toppscorers-1024664791682.asia-south2.run.app/admin/connections`;
+
+    const result = await sendTelegramMessage(text);
+    if (!result.success) {
+      return res.status(500).json({
+        message: 'Failed to send Telegram notification',
+        error: result.error
+      });
+    }
+
+    res.json({
+      message: 'Test notification sent to Telegram successfully!',
+      result
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
