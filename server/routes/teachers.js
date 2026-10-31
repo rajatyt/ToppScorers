@@ -248,14 +248,17 @@ router.get('/verification', authenticate, authorize('teacher'), async (req, res)
       verificationPhone: profile.verificationPhone || profile.userId?.phone || req.user.phone || '',
       preferredCallingTime: profile.preferredCallingTime || 'Anytime',
       govtId: profile.govtId || {},
-      degreeDetails: profile.degreeDetails || {},
+      degreeDetails: {
+        ...(profile.degreeDetails ? (profile.degreeDetails.toObject ? profile.degreeDetails.toObject() : profile.degreeDetails) : {}),
+        highestDegree: profile.degreeDetails?.highestDegree || (Array.isArray(profile.qualifications) && profile.qualifications.length > 0 ? profile.qualifications[0] : '')
+      },
       certificationDetails: profile.certificationDetails || {},
       instituteDetails: profile.instituteDetails || {},
       referenceContact: profile.referenceContact || {},
       teachingPhilosophy: profile.teachingPhilosophy || '',
       bio: profile.bio || '',
       demoVideoUrl: profile.demoVideoUrl || '',
-      experience: profile.experience || 0,
+      experience: isSubmitted ? (profile.experience !== undefined && profile.experience !== null ? profile.experience : 0) : '',
       subjects: isSubmitted ? (profile.subjects || []) : [],
       exams: isSubmitted ? (profile.exams || []) : [],
       board: isSubmitted ? (profile.board || '') : '',
@@ -295,14 +298,17 @@ router.get('/me/verification', authenticate, authorize('teacher'), async (req, r
       verificationPhone: profile.verificationPhone || profile.userId?.phone || req.user.phone || '',
       preferredCallingTime: profile.preferredCallingTime || 'Anytime',
       govtId: profile.govtId || {},
-      degreeDetails: profile.degreeDetails || {},
+      degreeDetails: {
+        ...(profile.degreeDetails ? (profile.degreeDetails.toObject ? profile.degreeDetails.toObject() : profile.degreeDetails) : {}),
+        highestDegree: profile.degreeDetails?.highestDegree || (Array.isArray(profile.qualifications) && profile.qualifications.length > 0 ? profile.qualifications[0] : '')
+      },
       certificationDetails: profile.certificationDetails || {},
       instituteDetails: profile.instituteDetails || {},
       referenceContact: profile.referenceContact || {},
       teachingPhilosophy: profile.teachingPhilosophy || '',
       bio: profile.bio || '',
       demoVideoUrl: profile.demoVideoUrl || '',
-      experience: profile.experience || 0,
+      experience: isSubmitted ? (profile.experience !== undefined && profile.experience !== null ? profile.experience : 0) : '',
       subjects: isSubmitted ? (profile.subjects || []) : [],
       exams: isSubmitted ? (profile.exams || []) : [],
       board: isSubmitted ? (profile.board || '') : '',
@@ -389,9 +395,25 @@ router.post(
       }
 
       // Degree
-      if (highestDegree !== undefined) profile.degreeDetails.highestDegree = highestDegree;
-      if (university !== undefined) profile.degreeDetails.university = university;
-      if (yearOfPassing !== undefined) profile.degreeDetails.yearOfPassing = yearOfPassing;
+      if (highestDegree !== undefined) {
+        if (!profile.degreeDetails) profile.degreeDetails = {};
+        profile.degreeDetails.highestDegree = highestDegree;
+        if (highestDegree && highestDegree.trim()) {
+          const deg = highestDegree.trim();
+          if (!profile.qualifications) profile.qualifications = [];
+          if (!profile.qualifications.includes(deg)) {
+            profile.qualifications = [deg, ...profile.qualifications.filter(q => q !== deg)];
+          }
+        }
+      }
+      if (university !== undefined) {
+        if (!profile.degreeDetails) profile.degreeDetails = {};
+        profile.degreeDetails.university = university;
+      }
+      if (yearOfPassing !== undefined) {
+        if (!profile.degreeDetails) profile.degreeDetails = {};
+        profile.degreeDetails.yearOfPassing = yearOfPassing;
+      }
 
       // Certification
       if (certificationName !== undefined) profile.certificationDetails.certificationName = certificationName;
@@ -411,7 +433,9 @@ router.post(
       if (teachingPhilosophy !== undefined) profile.teachingPhilosophy = teachingPhilosophy;
       if (bio !== undefined) profile.bio = bio;
       if (demoVideoUrl !== undefined) profile.demoVideoUrl = demoVideoUrl;
-      if (experience !== undefined && experience !== '') profile.experience = Number(experience) || profile.experience;
+      if (experience !== undefined && experience !== '') {
+        profile.experience = Number(experience) >= 0 ? Number(experience) : 0;
+      }
 
       if (subjects) {
         profile.subjects = Array.isArray(subjects) ? subjects : subjects.split(',').map(s => s.trim()).filter(Boolean);
@@ -559,6 +583,20 @@ router.put('/profile', authenticate, authorize('teacher'), async (req, res) => {
     delete updateData.isVerified;
     delete updateData.approvalStatus;
     delete updateData.verificationStatus;
+
+    // Sync highest degree to qualifications array
+    const highestDegVal = (updateData.degreeDetails?.highestDegree || updateData.highestDegree || '').trim();
+    if (highestDegVal) {
+      if (!Array.isArray(updateData.qualifications)) {
+        updateData.qualifications = [];
+      }
+      if (!updateData.qualifications.includes(highestDegVal)) {
+        updateData.qualifications = [highestDegVal, ...updateData.qualifications.filter(q => q !== highestDegVal)];
+      }
+    }
+    if (updateData.experience !== undefined && updateData.experience !== '') {
+      updateData.experience = Number(updateData.experience) >= 0 ? Number(updateData.experience) : 0;
+    }
 
     const oldPhone = req.user.phone || '';
     let phoneChanged = false;

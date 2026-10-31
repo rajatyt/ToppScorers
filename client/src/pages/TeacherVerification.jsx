@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import {
   FaCheckCircle, FaClock, FaExclamationTriangle, FaShieldAlt,
   FaIdCard, FaGraduationCap, FaArrowLeft, FaUpload, FaFilePdf, FaExternalLinkAlt,
-  FaCheck, FaPhoneAlt, FaLock, FaBookOpen, FaRupeeSign, FaMapMarkerAlt
+  FaCheck, FaPhoneAlt, FaLock, FaBookOpen, FaRupeeSign, FaMapMarkerAlt, FaBriefcase
 } from 'react-icons/fa';
 import { FiChevronRight, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
@@ -75,7 +75,7 @@ const TeacherVerification = () => {
     preferredTime: '',
     daysPerWeek: '',
     tutorGender: '',
-    studentGender: '',
+    experience: '',
 
     // Location & Coverage (Prayagraj) (Compulsory) - Initially Unfilled
     city: DISTRICTS[0] || 'Prayagraj',
@@ -136,7 +136,7 @@ const TeacherVerification = () => {
         let loadedPreferredTime = '';
         let loadedDaysPerWeek = '';
         let loadedTutorGender = '';
-        let loadedStudentGender = '';
+        let loadedExperience = '';
         let loadedArea = '';
         let loadedPincode = '';
 
@@ -158,7 +158,7 @@ const TeacherVerification = () => {
           loadedPreferredTime = data.preferredTime || '';
           loadedDaysPerWeek = data.daysPerWeek || '';
           loadedTutorGender = data.tutorGender || '';
-          loadedStudentGender = data.studentGender || '';
+          loadedExperience = data.experience !== undefined && data.experience !== null && data.experience !== '' ? data.experience : '';
           loadedArea = data.area || '';
           loadedPincode = (data.pincode === '211001' && data.verificationStatus === 'unverified') ? '' : (data.pincode || '');
         }
@@ -177,7 +177,7 @@ const TeacherVerification = () => {
           preferredTime: loadedPreferredTime,
           daysPerWeek: loadedDaysPerWeek,
           tutorGender: loadedTutorGender,
-          studentGender: loadedStudentGender,
+          experience: loadedExperience,
 
           // Location & Coverage - Initially Unfilled
           city: data.city || DISTRICTS[0] || 'Prayagraj',
@@ -189,7 +189,7 @@ const TeacherVerification = () => {
           idNumber: data.govtId?.idNumber || '',
 
           // Qualifications
-          highestDegree: data.degreeDetails?.highestDegree || '',
+          highestDegree: data.degreeDetails?.highestDegree || (Array.isArray(data.qualifications) && data.qualifications.length > 0 ? data.qualifications[0] : ''),
           university: data.degreeDetails?.university || '',
           yearOfPassing: data.degreeDetails?.yearOfPassing || ''
         });
@@ -277,6 +277,10 @@ const TeacherVerification = () => {
     }
     if (!formData.tutorGender?.trim()) {
       toast.error('Please select Tutor Gender preference');
+      return;
+    }
+    if (formData.experience === '' || formData.experience === null || formData.experience === undefined || isNaN(Number(formData.experience)) || Number(formData.experience) < 0) {
+      toast.error('Please enter your Teaching Experience in years (e.g. 5)');
       return;
     }
     if (!formData.city?.trim()) {
@@ -717,6 +721,25 @@ const TeacherVerification = () => {
                   <option value="Female">Female</option>
                   <option value="Any">Any</option>
                 </select>
+              </div>
+
+              {/* Experience (Years) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                  <FaBriefcase className="text-amber-500 mr-1" />
+                  Experience (Years) <span className="text-rose-500 ml-0.5">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="experience"
+                  required
+                  min="0"
+                  max="50"
+                  value={formData.experience}
+                  onChange={handleChange}
+                  placeholder="e.g. 5"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                />
               </div>
             </div>
           </div>

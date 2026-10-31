@@ -8,7 +8,7 @@ import {
   FaUserEdit, FaGraduationCap, FaAward, FaCheckCircle,
   FaShieldAlt, FaSave, FaArrowLeft, FaClock, FaExclamationTriangle,
   FaBook, FaBuilding, FaVideo, FaUserFriends, FaMapMarkerAlt,
-  FaBookOpen, FaRupeeSign, FaCamera
+  FaBookOpen, FaRupeeSign, FaCamera, FaBriefcase
 } from 'react-icons/fa';
 import { DISTRICTS, DISTRICT_AREAS } from '../utils/locationData';
 
@@ -125,12 +125,12 @@ const TeacherProfileEdit = () => {
           studentGender: p.studentGender || '',
 
           // Qualifications
-          highestDegree: p.degreeDetails?.highestDegree || '',
+          highestDegree: p.degreeDetails?.highestDegree || (Array.isArray(p.qualifications) && p.qualifications.length > 0 ? p.qualifications[0] : ''),
           university: p.degreeDetails?.university || '',
           yearOfPassing: p.degreeDetails?.yearOfPassing || '',
           certificationName: p.certificationDetails?.certificationName || 'NA',
           rollOrCertNumber: p.certificationDetails?.rollOrCertNumber || '',
-          experience: p.experience || 0,
+          experience: p.experience !== undefined && p.experience !== null ? p.experience : 0,
           currentOrPastInstitute: p.instituteDetails?.currentOrPastInstitute || '',
           designation: p.instituteDetails?.designation || '',
           demoVideoUrl: p.demoVideoUrl || '',
@@ -213,6 +213,7 @@ const TeacherProfileEdit = () => {
           state: formData.state,
           pincode: formData.pincode
         },
+        qualifications: formData.highestDegree?.trim() ? [formData.highestDegree.trim()] : [],
         experience: Number(formData.experience) || 0,
         demoVideoUrl: formData.demoVideoUrl,
         teachingPhilosophy: formData.teachingPhilosophy,
@@ -952,6 +953,24 @@ const TeacherProfileEdit = () => {
                       <option value="Male">Male</option>
                       <option value="Any">Any</option>
                     </select>
+                  </div>
+
+                  {/* Experience (Years) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center">
+                      <FaBriefcase className="text-amber-500 mr-1" />
+                      Experience (Years)
+                    </label>
+                    <input
+                      type="number"
+                      name="experience"
+                      min="0"
+                      max="50"
+                      value={formData.experience}
+                      onChange={handleChange}
+                      placeholder="e.g. 5"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                    />
                   </div>
                 </div>
               </div>

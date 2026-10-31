@@ -184,9 +184,26 @@ export function serializeProfile(profile, requestingUser = null, connectionStatu
     bio: raw.bio || '',
     subjects: raw.subjects || [],
     exams: raw.exams || [],
-    qualifications: raw.qualifications || [],
+    qualifications: (raw.qualifications && raw.qualifications.length > 0)
+      ? raw.qualifications
+      : (raw.degreeDetails?.highestDegree ? [raw.degreeDetails.highestDegree] : []),
     certifications: raw.certifications || [],
-    degreeDetails: raw.degreeDetails ? { highestDegree: raw.degreeDetails.highestDegree || '', university: raw.degreeDetails.university || '' } : null,
+    degreeDetails: (isOwner || isAdmin)
+      ? {
+          highestDegree: raw.degreeDetails?.highestDegree || (raw.qualifications?.[0] || ''),
+          university: raw.degreeDetails?.university || '',
+          yearOfPassing: raw.degreeDetails?.yearOfPassing || '',
+          degreeDocumentUrl: raw.degreeDetails?.degreeDocumentUrl || ''
+        }
+      : (raw.degreeDetails
+          ? {
+              highestDegree: raw.degreeDetails.highestDegree || (raw.qualifications?.[0] || ''),
+              university: raw.degreeDetails.university || ''
+            }
+          : (raw.qualifications?.[0] ? { highestDegree: raw.qualifications[0], university: '' } : null)),
+    certificationDetails: (isOwner || isAdmin) ? (raw.certificationDetails || {}) : undefined,
+    instituteDetails: (isOwner || isAdmin) ? (raw.instituteDetails || {}) : undefined,
+    referenceContact: (isOwner || isAdmin) ? (raw.referenceContact || {}) : undefined,
     experience: raw.experience || 0,
     demoVideoUrl: raw.demoVideoUrl || '',
     verifiedResults: raw.verifiedResults || [],
