@@ -14,7 +14,7 @@ import { validateUniqueEmail, validateUniquePhone } from '../utils/identityValid
 import { generateTeacherJobId, generateStudentJobId } from '../utils/jobIdHelper.js';
 import Query from '../models/Query.js';
 import AdminNotification from '../models/AdminNotification.js';
-import { sendTelegramMessage, notifyTelegramLeadStatusUpdate, TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID } from '../utils/telegramService.js';
+import { sendTelegramMessage, notifyTelegramLeadAccepted, TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID } from '../utils/telegramService.js';
 
 const router = express.Router();
 
@@ -1091,14 +1091,14 @@ router.patch('/connections/:id', async (req, res) => {
     if (commissionReceived !== undefined) request.commissionReceived = Number(commissionReceived) || 0;
     if (commissionStatus !== undefined) request.commissionStatus = commissionStatus;
     if (adminNotes !== undefined) request.adminNotes = adminNotes;
+    const oldStatus = request.status;
     if (status !== undefined) request.status = status;
 
     await request.save();
 
-    // Trigger Telegram alert for Admin on major pipeline status updates
-    if (adminLeadStatus || commissionStatus || commissionReceived !== undefined) {
-      notifyTelegramLeadStatusUpdate(request, { adminLeadStatus, commissionStatus, commissionReceived, adminNotes })
-        .catch(err => console.error('[Telegram] Lead status update error:', err));
+    // Trigger Telegram alert only on mutual match / accepted status
+    if (status === 'accepted' && oldStatus !== 'accepted') {
+      notifyTelegramLeadAccepted(request).catch(err => console.error('[Telegram] Lead accepted error:', err));
     }
 
     const populated = await ConnectionRequest.findById(request._id)

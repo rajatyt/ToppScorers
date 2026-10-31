@@ -5,7 +5,7 @@ import TeacherProfile from '../models/TeacherProfile.js';
 import StudentProfile from '../models/StudentProfile.js';
 import Block from '../models/Block.js';
 import { authenticate } from '../middleware/auth.js';
-import { notifyTelegramNewLead, notifyTelegramLeadAccepted } from '../utils/telegramService.js';
+import { notifyTelegramLeadAccepted } from '../utils/telegramService.js';
 
 const router = express.Router();
 
@@ -105,9 +105,6 @@ router.post('/', async (req, res) => {
       existing.viewedByAdmin = false;
       await existing.save();
 
-      // Trigger Telegram Bot alert for Admin in All Pipeline Leads
-      notifyTelegramNewLead(existing).catch(err => console.error('[Telegram] Lead notification error:', err));
-
       return res.json({ message: 'Connection request sent successfully', request: existing });
     }
 
@@ -120,9 +117,6 @@ router.post('/', async (req, res) => {
       viewedByFromUser: true,
       viewedByAdmin: false
     });
-
-    // Trigger Telegram Bot alert for Admin in All Pipeline Leads
-    notifyTelegramNewLead(newRequest).catch(err => console.error('[Telegram] Lead notification error:', err));
 
     res.status(201).json({ message: 'Connection request sent successfully', request: newRequest });
   } catch (error) {
